@@ -1,4 +1,4 @@
-# Fine-tuning Phi3.x-Vision Series
+# Fine-tuning Qwen2-VL
 
 This repository contains a script for training [Qwen2-VL](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct) without only using huggingface.
 
