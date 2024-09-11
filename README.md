@@ -2,9 +2,9 @@
 
 This repository contains a script for training [Qwen2-VL](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct) without only using huggingface.
 
-### Other projects you might be interested in
+## Other projects
 
-- [Phi3-Vision Finetuning](https://github.com/2U1/Phi3-Vision-Finetune)
+**[[Phi3-Vision Finetuning]](https://github.com/2U1/Phi3-Vision-Finetune)**
 
 ## Update
 
