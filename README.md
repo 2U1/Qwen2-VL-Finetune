@@ -27,7 +27,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 - Full-finetuning
 - Enable finetuning `vision_model` while using LoRA.
 - Disable/enable Flash Attention 2
-- Multi-image training and inference
+- Multi-image and video training
 
 ## Installation
 
@@ -186,7 +186,7 @@ bash scripts/finetune_lora_vision.sh
 - `--deepspeed` (str): Path to DeepSpeed config file (default: "scripts/zero2.json").
 - `--data_path` (str): Path to the LLaVA formatted training data (a JSON file). **(Required)**
 - `--image_folder` (str): Path to the images folder as referenced in the LLaVA formatted training data. **(Required)**
-- `--model_id` (str): Path to the Phi3-vision model. **(Required)**
+- `--model_id` (str): Path to the Qwen2-VL model. **(Required)**
 - `--output_dir` (str): Output directory for model checkpoints
 - `--num_train_epochs` (int): Number of training epochs (default: 1).
 - `--per_device_train_batch_size` (int): Training batch size per GPU per forwarding step.
@@ -291,6 +291,6 @@ If you find this repository useful in your project, please consider giving a :st
 
 This project is based on
 
-- [LLaVA](https://github.com/haotian-liu/LLaVA): An amazing open-source project of LMM.
+- [LLaVA-NeXT](https://github.com/LLaVA-VL/LLaVA-NeXT): An amazing open-source project of LMM.
 - [Mipha](https://github.com/zhuyiche/llava-phi): Open-source projcet of SMM with amazing capabilites.
 - [Qwen2-VL-7B-Instruct](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct): Awesome pretrained MLLM based on Qwen2.
