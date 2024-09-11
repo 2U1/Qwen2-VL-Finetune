@@ -63,6 +63,27 @@ def get_image_info(image_path, min_pixel, max_pixel):
 
     return image_input[0]
 
+def get_video_info(video_path, max_pixels, fps):
+    # Using this because of process_vision_info function
+    # Need to fix this in the future
+
+    messages = [
+        {"role": "user", 
+         "content": [
+             {
+                "type": "video", 
+                "video": video_path,
+                "max_pixels": max_pixels,
+                "fps": fps
+            }
+            ]
+        }
+    ]
+
+    video_input, _ = process_vision_info(messages)
+
+    return video_input[0]
+
 class SupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
 
@@ -85,6 +106,7 @@ class SupervisedDataset(Dataset):
         self.padding = padding
         self.min_pixel = data_args.min_pixels
         self.max_pixel = data_args.max_pixels
+        self.fps = data_args.fps
 
     def __len__(self):
         return len(self.list_data_dict)
@@ -92,8 +114,12 @@ class SupervisedDataset(Dataset):
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         sources = self.list_data_dict[i]
 
+        is_video = False
+
         processor = self.processor
         if "image" in sources:
+            videos = None
+            
             image_files = sources["image"]
             image_folder = self.data_args.image_folder
 
@@ -106,10 +132,27 @@ class SupervisedDataset(Dataset):
                 if not os.path.exists(image_file):
                     image_file = os.path.join(image_folder, image_file)
                 images.append(get_image_info(image_file, self.min_pixel, self.max_pixel))
+
+        elif "video" in sources:
+            is_video = True
+            images=None
+
+            video_files = sources["video"]
+            video_folder = self.data_args.video_folder
+
+            if isinstance(video_files, str):
+                video_files = [video_files]
+
+            videos = []
+            for video_file in video_files:
+                if not os.path.exists(video_file):
+                    video_file = os.path.join(video_folder, video_file)
+                videos.append(get_video_info(video_file, self.max_pixel, self.data_args.fps))
         else:
             images = None
+            videos = None
 
-        sources = copy.deepcopy(llava_to_openai(sources['conversations']))
+        sources = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video))
 
         all_input_ids = [] 
         all_labels = []
@@ -133,7 +176,7 @@ class SupervisedDataset(Dataset):
             gpt_response = f"{DEFAULT_IM_START_TOKEN}{gpt_response['role']}\n{gpt_response['content']}\n{DEFAULT_IM_END_TOKEN}\n"
             
             if idx == 0:
-                inputs = processor(text=[user_input], images=images, videos=None, padding=False, return_tensors='pt')
+                inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
                 all_pixel_values.append(inputs['pixel_values'])
                 all_image_grid_thw.append(inputs['image_grid_thw'])
@@ -216,18 +259,22 @@ class DataCollatorForSupervisedDataset(object):
         }
     
 
-def replace_image_tokens(input_string):
+def replace_image_tokens(input_string, is_video=False):
 
-    input_string = input_string.replace(LLAVA_IMAGE_TOKEN+'\n', VISION_START_TOKEN+DEFAULT_IMAGE_TOKEN+VISION_END_TOKEN)
+    if is_video:
+        input_string = input_string.replace(LLAVA_IMAGE_TOKEN+'\n', VISION_START_TOKEN+DEFAULT_VIDEO_TOKEN+VISION_END_TOKEN)
+
+    else:
+        input_string = input_string.replace(LLAVA_VIDEO_TOKEN+'\n', VISION_START_TOKEN+DEFAULT_IMAGE_TOKEN+VISION_END_TOKEN)
 
     return input_string
 
-def llava_to_openai(conversations):
+def llava_to_openai(conversations, is_video=False):
     role_mapping = {"human": "user", "gpt": "assistant"}
 
     transformed_data = []
     for conversation in conversations:
-        transformed_content = replace_image_tokens(conversation["value"])
+        transformed_content = replace_image_tokens(conversation["value"], is_video=is_video)
         transformed_entry = {
             "role": role_mapping.get(conversation["from"], conversation["from"]),
             "content": transformed_content,

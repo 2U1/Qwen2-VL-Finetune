@@ -52,7 +52,6 @@ class TrainingArguments(TrainingArguments):
     num_lora_modules: int = -1
 
 
-
 @dataclass
 class DataArguments:
     data_path: str = field(
@@ -62,3 +61,4 @@ class DataArguments:
     image_folder: Optional[str] = field(default=None)
     min_pixels: int = 256 * 28 * 28
     max_pixels: int = 1280 * 28 * 28
+    fps: float = 1.0

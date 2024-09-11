@@ -6,6 +6,10 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 - [Phi3-Vision Finetuning](https://github.com/2U1/Phi3-Vision-Finetune)
 
+## Update
+
+- [2024/09/11] 🔥Supports multi-image and video training.
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -55,9 +59,10 @@ Don't know what causes this issue. Looks like env issue.
 The script requires a dataset formatted according to the LLaVA specification. The dataset should be a JSON file where each entry contains information about conversations and images. Ensure that the image paths in the dataset match the provided `--image_folder`.<br>
 
 **When using a multi-image dataset, the image tokens should all be `<image>`, and the image file names should have been in a list.**
+**Please see the example below and follow format your data.**
 
 <details>
-<summary>Example Dataset</summary>
+<summary>Example for single image dataset</summary>
 
 ```json
 [
@@ -94,6 +99,58 @@ The script requires a dataset formatted according to the LLaVA specification. Th
   ...
 ]
 ```
+
+</details>
+
+<details>
+<summary>Example for multi image dataset</summary>
+
+```json
+[
+  {
+    "id": "000000033471",
+    "image": ["000000033471.jpg", "000000033472.jpg"],
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\n<image>\nIs the perspective of the camera differnt?"
+      },
+      {
+        "from": "gpt",
+        "value": "Yes, It the perspective of the camera is different."
+      }
+    ]
+  }
+  ...
+]
+```
+
+</details>
+
+<details>
+<summary>Example for video dataset</summary>
+
+```json
+[
+  {
+    "id": "sample1",
+    "video": "sample1.mp4",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<video>\nWhat is going on in this video?"
+      },
+      {
+        "from": "gpt",
+        "value": "A man is walking down the road."
+      }
+    ]
+  }
+  ...
+]
+```
+
+**Note:** Qwen2-VL uses a video as a sequential of images.
 
 </details>
 
@@ -158,6 +215,16 @@ bash scripts/finetune_lora_vision.sh
 
 </details>
 
+### Train with video dataset
+
+You can train the model using a video dataset. However, Qwen2-VL processes videos as a sequence of images, so you’ll need to select specific frames and treat them as multiple images for training. You can set LoRA configs and use for LoRA too.
+
+```bash
+bash scripts/finetune_video.sh
+```
+
+**Note:** When training with video, it just as multi-image so you should adjust the `max_pixels` for maximum resolution and `fps` based on the available VRAM.
+
 If you run out of vram, you can use [zero3_offload](./scripts/zero3_offload.json) instead of [zero3](./scripts/zero3_offload.json). However, using zero3 is preferred.
 
 #### Merge LoRA Weights
@@ -180,6 +247,8 @@ min_pixels = 256 * 28 * 28
 max_pixels = 1280 * 28 * 28
 ```
 
+**Note:** For video, the you don't have to set like this, you could just set the maximum resolution for it.
+
 #### Issue for libcudnn error
 
 ```
@@ -191,8 +260,9 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 
 ## TODO
 
-- [ ] Support for video data
+- [x] Support for video data
 - [ ] Support for dyanmic truncation
+- [ ] Add demo for multi-image and video
 
 ## Known Issues
 
