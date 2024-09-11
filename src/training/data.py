@@ -80,7 +80,7 @@ def get_video_info(video_path, max_pixels, fps):
         }
     ]
 
-    video_input, _ = process_vision_info(messages)
+    _, video_input = process_vision_info(messages)
 
     return video_input[0]
 
@@ -262,10 +262,10 @@ class DataCollatorForSupervisedDataset(object):
 def replace_image_tokens(input_string, is_video=False):
 
     if is_video:
-        input_string = input_string.replace(LLAVA_IMAGE_TOKEN+'\n', VISION_START_TOKEN+DEFAULT_VIDEO_TOKEN+VISION_END_TOKEN)
+        input_string = input_string.replace(LLAVA_VIDEO_TOKEN+'\n', VISION_START_TOKEN+DEFAULT_VIDEO_TOKEN+VISION_END_TOKEN)
 
     else:
-        input_string = input_string.replace(LLAVA_VIDEO_TOKEN+'\n', VISION_START_TOKEN+DEFAULT_IMAGE_TOKEN+VISION_END_TOKEN)
+        input_string = input_string.replace(LLAVA_IMAGE_TOKEN+'\n', VISION_START_TOKEN+DEFAULT_IMAGE_TOKEN+VISION_END_TOKEN)
 
     return input_string
 
