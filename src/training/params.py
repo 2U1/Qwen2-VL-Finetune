@@ -18,6 +18,7 @@ class TrainingArguments(TrainingArguments):
     adam_epsilon: float = field(default=1e-7)
 
     freeze_vision_tower: bool = field(default=False)
+    tune_merger: bool = field(default=False)
     disable_flash_attn2: bool = field(default=False)
 
     max_seq_length: int = field(
@@ -48,6 +49,7 @@ class TrainingArguments(TrainingArguments):
     lora_weight_path: str = ""
     lora_bias: str = "none"
     vision_lr: Optional[float] = None
+    merger_lr: Optional[float] = None
     lora_namespan_exclude: str = field(default=None, metadata={"help": "List of namespan to exclude for LoRA"})
     num_lora_modules: int = -1
 

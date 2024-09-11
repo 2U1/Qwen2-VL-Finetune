@@ -12,6 +12,7 @@ deepspeed src/training/train.py \
     --data_path /path/to/your/training/data.json \
     --image_folder /path/to/your/image/folder \
     --freeze_vision_tower False \
+    --tune_merger True \
     --bf16 True \
     --fp16 False \
     --disable_flash_attn2 False \
@@ -22,12 +23,13 @@ deepspeed src/training/train.py \
     --max_pixels $((360 * 420)) \
     --fps 1.0 \
     --learning_rate 1e-5 \
+    --merger_lr 1e-5 \
     --vision_lr 2e-6 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
-    --tf32 False \
+    --tf32 True \
     --gradient_checkpointing True \
     --report_to tensorboard \
     --lazy_preprocess True \

@@ -8,6 +8,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2024/09/11] Supports setting different learning rates to projector and vision model.
 - [2024/09/11] 🔥Supports multi-image and video training.
 
 ## Table of Contents
@@ -192,8 +193,10 @@ bash scripts/finetune_lora_vision.sh
 - `--per_device_train_batch_size` (int): Training batch size per GPU per forwarding step.
 - `--gradient_accumulation_steps` (int): Gradient accumulation steps (default: 4).
 - `--freeze_vision_tower` (bool): Option to freeze vision_model (default: False).
+- `--tune_merger` (bool): Option to tune projector (default: True).
 - `--num_lora_modules` (int): Number of target modules to add LoRA (-1 means all layers).
-- `--vision_lr` (float): Learning rate for `vision_tower` and `merger`.
+- `--vision_lr` (float): Learning rate for vision_model.
+- `--merger_lr` (float): Learning rate for merger(projector).
 - `--learning_rate` (float): Learning rate for language module.
 - `--bf16` (bool): Option for using bfloat16.
 - `--fp16` (bool): Option for using fp16.

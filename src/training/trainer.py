@@ -59,10 +59,19 @@ class QwenTrainer(Trainer):
             decay_parameters = get_parameter_names(opt_model, ALL_LAYERNORM_LAYERS)
             decay_parameters = [name for name in decay_parameters if "bias" not in name]
             lr_mapper = {}
+            visual_parameters = []
+            merger_parameters = []
+
             if self.args.vision_lr is not None:
                 lr_mapper["visual"] = self.args.vision_lr
+                visual_parameters = [name for name, _ in opt_model.named_parameters() if "visual" in name and "merger" not in name]
+            if self.args.merger_lr is not None:
+                lr_mapper["merger"] = self.args.merger_lr
+                merger_parameters = [name for name, _ in opt_model.named_parameters() if "merger" in name]
+
             if len(lr_mapper) > 0:
-                special_lr_parameters = [name for name, _ in opt_model.named_parameters() if any(module_keyword in name for module_keyword in lr_mapper)]
+                special_lr_parameters = merger_parameters + visual_parameters
+                
                 optimizer_grouped_parameters = [
                     {
                         "params": [p for n, p in opt_model.named_parameters() if (n in decay_parameters and n not in special_lr_parameters and p.requires_grad)],
@@ -73,19 +82,35 @@ class QwenTrainer(Trainer):
                         "weight_decay": 0.0,
                     },
                 ]
-                for module_keyword, lr in lr_mapper.items():
-                    module_parameters = [name for name, _ in opt_model.named_parameters() if module_keyword in name]
+                
+                if visual_parameters: 
                     optimizer_grouped_parameters.extend(
                         [
                             {
-                                "params": [p for n, p in opt_model.named_parameters() if (n in decay_parameters and n in module_parameters and p.requires_grad)],
+                                "params": [p for n, p in opt_model.named_parameters() if (n in decay_parameters and n in visual_parameters and p.requires_grad)],
                                 "weight_decay": self.args.weight_decay,
-                                "lr": lr,
+                                "lr": self.args.vision_lr,
                             },
                             {
-                                "params": [p for n, p in opt_model.named_parameters() if (n not in decay_parameters and n in module_parameters and p.requires_grad)],
+                                "params": [p for n, p in opt_model.named_parameters() if (n not in decay_parameters and n in visual_parameters and p.requires_grad)],
                                 "weight_decay": 0.0,
-                                "lr": lr,
+                                "lr": self.args.vision_lr,
+                            },
+                        ]
+                    )
+                
+                if merger_parameters: 
+                    optimizer_grouped_parameters.extend(
+                        [
+                            {
+                                "params": [p for n, p in opt_model.named_parameters() if (n in decay_parameters and n in merger_parameters and p.requires_grad)],
+                                "weight_decay": self.args.weight_decay,
+                                "lr": self.args.merger_lr,
+                            },
+                            {
+                                "params": [p for n, p in opt_model.named_parameters() if (n not in decay_parameters and n in merger_parameters and p.requires_grad)],
+                                "weight_decay": 0.0,
+                                "lr": self.args.merger_lr,
                             },
                         ]
                     )
@@ -100,7 +125,6 @@ class QwenTrainer(Trainer):
                         "weight_decay": 0.0,
                     },
                 ]
-
             optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
 
             self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)

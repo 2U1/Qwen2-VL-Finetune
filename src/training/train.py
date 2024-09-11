@@ -37,11 +37,16 @@ def set_requires_grad(parameters, requires_grad):
         p.requires_grad = requires_grad
 
 def configure_vision_tower(model, training_args, compute_dtype, device):
+    # Configure the vision tower as usual
     vision_tower = model.visual
     vision_tower.to(dtype=compute_dtype, device=device)
-
+    # Handle vision model parameters
     vision_model_params = model.visual.parameters()
     set_requires_grad(vision_model_params, not training_args.freeze_vision_tower)
+    
+    # Handle merger specifically
+    merger_params = model.visual.merger.parameters()
+    set_requires_grad(merger_params, training_args.tune_merger)
 
 def train():
     global local_rank
