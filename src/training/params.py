@@ -20,6 +20,14 @@ class TrainingArguments(TrainingArguments):
     freeze_vision_tower: bool = field(default=False)
     disable_flash_attn2: bool = field(default=False)
 
+    max_seq_length: int = field(
+        default=32768, # This is the default value of the qwen2-vl model
+        metadata={
+            "help":
+                "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
+        },
+    )
+
     double_quant: bool = field(
         default=True,
         metadata={"help": "Compress the quantization statistics through double quantization."}
@@ -42,7 +50,6 @@ class TrainingArguments(TrainingArguments):
     vision_lr: Optional[float] = None
     lora_namespan_exclude: str = field(default=None, metadata={"help": "List of namespan to exclude for LoRA"})
     num_lora_modules: int = -1
-    num_crops: int = 16
 
 
 
@@ -53,10 +60,5 @@ class DataArguments:
     )
     lazy_preprocess: bool = False
     image_folder: Optional[str] = field(default=None)
-    max_seq_length: int = field(
-        default=32768, # This is the default value of the qwen2-vl model
-        metadata={
-            "help":
-                "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
-        },
-    )
+    min_pixels: int = 256 * 28 * 28
+    max_pixels: int = 1280 * 28 * 28

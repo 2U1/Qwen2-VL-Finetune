@@ -41,14 +41,14 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         if hasattr(lora_cfg_pretrained, 'quantization_config'):
             del lora_cfg_pretrained.quantization_config
         processor = AutoProcessor.from_pretrained(model_base)
-        print('Loading Phi3-Vision from base model...')
+        print('Loading Qwen2-VL from base model...')
         model = Qwen2VLForConditionalGeneration.from_pretrained(model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, **kwargs)
         token_num, tokem_dim = model.lm_head.out_features, model.lm_head.in_features
         if model.lm_head.weight.shape[0] != token_num:
             model.lm_head.weight = torch.nn.Parameter(torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype))
             model.model.embed_tokens.weight = torch.nn.Parameter(torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype))
 
-        print('Loading additional Phi3-Vision weights...')
+        print('Loading additional Qwen2-VL weights...')
         non_lora_trainables = torch.load(os.path.join(model_path, 'non_lora_state_dict.bin'), map_location='cpu')
         non_lora_trainables = {(k[11:] if k.startswith('base_model.') else k): v for k, v in non_lora_trainables.items()}
         if any(k.startswith('model.model.') for k in non_lora_trainables):

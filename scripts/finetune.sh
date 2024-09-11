@@ -19,7 +19,8 @@ deepspeed src/training/train.py \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --gradient_accumulation_steps 1 \
-    --max_seq_length 2048 \
+    --min_pixels $((256 * 28 * 28)) \
+    --max_pixels $((1280 * 28 * 28)) \
     --learning_rate 1e-5 \
     --vision_lr 2e-6 \
     --weight_decay 0. \

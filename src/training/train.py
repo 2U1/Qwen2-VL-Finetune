@@ -91,8 +91,6 @@ def train():
 
     model.config.use_cache = False
 
-    print(model.config)
-
     if training_args.bits in [4,8]:
         model.config.torch_dtype = (torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
         from peft import prepare_model_for_kbit_training
@@ -120,7 +118,9 @@ def train():
         model = get_peft_model(model, peft_config)
 
     processor = AutoProcessor.from_pretrained(model_args.model_id,
-                                              padding_side="right")
+                                              padding_side="right",
+                                              min_pixels=data_args.min_pixels,
+                                              max_pixels=data_args.max_pixels,)
 
     # model.config.tokenizer_model_max_length = processor.tokenizer.model_max_length
     model.config.tokenizer_padding_side = processor.tokenizer.padding_side

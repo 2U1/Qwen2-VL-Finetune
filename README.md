@@ -2,6 +2,10 @@
 
 This repository contains a script for training [Qwen2-VL](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct) without only using huggingface.
 
+### Other projects you might be interested in
+
+- [Phi3-Vision Finetuning](https://github.com/2U1/Phi3-Vision-Finetune)
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -136,6 +140,8 @@ bash scripts/finetune_lora_vision.sh
 - `--learning_rate` (float): Learning rate for language module.
 - `--bf16` (bool): Option for using bfloat16.
 - `--fp16` (bool): Option for using fp16.
+- `--min_pixels` (int): Option for minimum input tokens.
+- `--max_pixles` (int): OPtion for maximum maxmimum tokens.
 - `--lora_namespan_exclude` (str): Exclude modules with namespans to add LoRA.
 - `--max_seq_length` (int): Maximum sequence length (default: 32K).
 - `--bits` (int): Quantization bits (default: 16).
@@ -162,6 +168,18 @@ bash scripts/merge_lora.sh
 
 **Note:** Remember to replace the paths in `finetune.sh` or `finetune_lora.sh` with your specific paths. (Also in `merge_lora.sh` when using LoRA.)
 
+#### Image Resolution for performance boost
+
+The model supprots a wide range of resolution inputs. By default, it uses the native resolution for input.
+For better performance using native or higer pixel numbers are recommended, however it takes too much memory and computation time for large images. So you could adjust the pixel numbers for it.
+The model splits the image into `token * 28 * 28` so you could just change the the token_num part in the script. <br>
+For example:
+
+```
+min_pixels = 256 * 28 * 28
+max_pixels = 1280 * 28 * 28
+```
+
 #### Issue for libcudnn error
 
 ```
@@ -174,6 +192,7 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 ## TODO
 
 - [ ] Support for video data
+- [ ] Support for dyanmic truncation
 
 ## Known Issues
 

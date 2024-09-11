@@ -41,14 +41,20 @@ def pad_sequence(sequences, padding_side='right', padding_value=0):
             output.data[i, -length:] = seq
     return output
 
-def get_image_info(image_path):
+def get_image_info(image_path, min_pixel, max_pixel):
     # Using this because of process_vision_info function
     # Need to fix this in the future    
     
     messages = [
         {"role": "user", 
          "content": [
-             {"type": "image", "image": image_path}
+             {
+                "type": "image", 
+                "image": image_path,
+                "min_pixel": min_pixel,
+                "max_pixel": max_pixel
+
+            }
             ]
         }
     ]
@@ -77,7 +83,8 @@ class SupervisedDataset(Dataset):
         self.list_data_dict = list_data_dict
         self.data_args = data_args
         self.padding = padding
-        self.max_length = data_args.max_seq_length
+        self.min_pixel = data_args.min_pixels
+        self.max_pixel = data_args.max_pixels
 
     def __len__(self):
         return len(self.list_data_dict)
@@ -98,7 +105,7 @@ class SupervisedDataset(Dataset):
             for image_file in image_files:
                 if not os.path.exists(image_file):
                     image_file = os.path.join(image_folder, image_file)
-                images.append(get_image_info(image_file))
+                images.append(get_image_info(image_file, self.min_pixel, self.max_pixel))
         else:
             images = None
 
@@ -154,9 +161,8 @@ class SupervisedDataset(Dataset):
         input_ids = torch.cat(all_input_ids, dim=0).to(torch.long)
         labels = torch.cat(all_labels, dim=0).to(torch.long)
 
-        eos_token_id = processor.tokenizer.convert_tokens_to_ids(DEFAULT_IM_END_TOKEN)
-
-        input_ids, labels = truncate_sequence(input_ids, labels, self.max_length, eos_token_id)
+        # eos_token_id = processor.tokenizer.convert_tokens_to_ids(DEFAULT_IM_END_TOKEN)
+        # input_ids, labels = truncate_sequence(input_ids, labels, self.max_length, eos_token_id)
 
         pixel_values = torch.cat(all_pixel_values, dim=0)
         image_thw = torch.cat(all_image_grid_thw, dim=0)
