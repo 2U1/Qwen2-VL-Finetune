@@ -138,7 +138,7 @@ class SupervisedDataset(Dataset):
             images=None
 
             video_files = sources["video"]
-            video_folder = self.data_args.video_folder
+            video_folder = self.data_args.image_folder
 
             if isinstance(video_files, str):
                 video_files = [video_files]
