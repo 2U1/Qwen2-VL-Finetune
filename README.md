@@ -8,6 +8,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2024/09/12] 🔥Now the model is trained using [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
 - [2024/09/11] Supports setting different learning rates to projector and vision model.
 - [2024/09/11] 🔥Supports multi-image and video training.
 
@@ -29,31 +30,25 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 - Enable finetuning `vision_model` while using LoRA.
 - Disable/enable Flash Attention 2
 - Multi-image and video training
+- Training optimized with liger kernel
 
 ## Installation
 
-Install the required packages using `environment.yml`.
+Install the required packages using `environment.yaml`.
 
 The code of Qwen2-VL has been in the latest Hugging face transformers and we advise you to build from source.
+The latest dev version loads wrong version of config file, so you should install the following versions for now.
 
 ### Using `environment.yaml`
 
 ```bash
 conda env create -f environment.yaml
 conda activate qwen2
-pip install flash-attn --no-build-isolation
 pip install qwen-vl-utils
-pip install git+https://github.com/huggingface/transformers accelerate
+pip install git+https://github.com/huggingface/transformers@21fac7abba2a37fae86106f87fcf9974fd1e3830
 ```
 
 **Note:** You should install the `flash-attn` after running other libraries `environment.yaml`.
-
-#### Model loading issue
-
-Showing the warning <br>
-`` Unrecognized keys in `rope_scaling` for 'rope_type'='default': {'mrope_section'} ``
-
-Don't know what causes this issue. Looks like env issue.
 
 ## Dataset Preparation
 
@@ -270,7 +265,6 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 ## Known Issues
 
 - [libcudnn issue](#issue-for-libcudnn-error)
-- [model loading issue](#model-loading-issue)
 
 ## License
 
@@ -297,3 +291,4 @@ This project is based on
 - [LLaVA-NeXT](https://github.com/LLaVA-VL/LLaVA-NeXT): An amazing open-source project of LMM.
 - [Mipha](https://github.com/zhuyiche/llava-phi): Open-source projcet of SMM with amazing capabilites.
 - [Qwen2-VL-7B-Instruct](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct): Awesome pretrained MLLM based on Qwen2.
+- [Liger-Kernel](https://github.com/linkedin/Liger-Kernel): Collection of Tirton kernels designed specifically for LLM training.

@@ -1,4 +1,4 @@
-name: qwen2
+name: liger
 channels:
   - defaults
 dependencies:
@@ -14,6 +14,7 @@ dependencies:
   - libuuid=1.41.5=h5eee18b_0
   - ncurses=6.4=h6a678d5_0
   - openssl=3.0.13=h7f8727e_0
+  - pip=24.2=py310h06a4308_0
   - python=3.10.14=h955ad1f_0
   - readline=8.2=h5eee18b_0
   - setuptools=68.2.2=py310h06a4308_0
@@ -23,6 +24,7 @@ dependencies:
   - xz=5.4.6=h5eee18b_0
   - zlib=1.2.13=h5eee18b_0
   - pip:
+      - accelerate==0.34.0
       - aiohttp==3.9.5
       - aiosignal==1.3.1
       - annotated-types==0.6.0
@@ -48,6 +50,7 @@ dependencies:
       - exceptiongroup==1.2.0
       - executing==2.0.1
       - filelock==3.13.1
+      - flash-attn==2.5.8
       - frozenlist==1.4.1
       - fsspec==2024.3.1
       - ftfy==6.2.0
@@ -88,7 +91,8 @@ dependencies:
       - nvidia-curand-cu12==10.3.2.106
       - nvidia-cusolver-cu12==11.4.5.107
       - nvidia-cusparse-cu12==12.1.0.106
-      - nvidia-nccl-cu12==2.19.3
+      - nvidia-ml-py==12.560.30
+      - nvidia-nccl-cu12==2.20.5
       - nvidia-nvjitlink-cu12==12.4.127
       - nvidia-nvtx-cu12==12.1.105
       - packaging==24.0
@@ -98,7 +102,6 @@ dependencies:
       - pexpect==4.9.0
       - pickleshare==0.7.5
       - pillow==10.2.0
-      - pip==24.0
       - platformdirs==4.2.0
       - prompt-toolkit==3.0.42
       - protobuf==4.25.3
@@ -117,10 +120,11 @@ dependencies:
       - pytz==2024.1
       - pyyaml==6.0.1
       - pyzmq==25.1.2
+      - qwen-vl-utils==0.0.4
       - regex==2023.12.25
       - requests==2.32.3
       - rich==13.7.1
-      - safetensors==0.4.2
+      - safetensors==0.4.5
       - sentencepiece==0.2.0
       - sentry-sdk==1.45.0
       - setproctitle==1.3.3
@@ -130,14 +134,15 @@ dependencies:
       - stack-data==0.6.2
       - sympy==1.12
       - tbb==2021.12.0
+      - tensorboardx==2.6.2.2
       - tokenizers==0.19.1
-      - torch==2.2.0
-      - torchaudio==2.2.0
-      - torchvision==0.17.0
+      - torch==2.3.1
+      - torchaudio==2.3.1
+      - torchvision==0.18.1
       - tornado==6.1
       - tqdm==4.66.4
       - traitlets==5.14.2
-      - triton==2.2.0
+      - triton==2.3.1
       - trl==0.8.6
       - typing-extensions==4.9.0
       - tyro==0.8.4
@@ -146,6 +151,6 @@ dependencies:
       - urllib3==2.1.0
       - wandb==0.16.6
       - wcwidth==0.2.13
-      - xformers==0.0.24
       - xxhash==3.4.1
       - yarl==1.9.4
+      - liger-kernel-nightly==0.2.1.dev20240911164559
