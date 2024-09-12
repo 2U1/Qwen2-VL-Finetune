@@ -119,6 +119,8 @@ class SupervisedDataset(Dataset):
         processor = self.processor
         if "image" in sources:
             videos = None
+            grid_key = "image_grid_thw"
+            pixel_key = "pixel_values"
             
             image_files = sources["image"]
             image_folder = self.data_args.image_folder
@@ -136,6 +138,8 @@ class SupervisedDataset(Dataset):
         elif "video" in sources:
             is_video = True
             images=None
+            grid_key = "video_grid_thw"
+            pixel_key = "pixel_values_videos"
 
             video_files = sources["video"]
             video_folder = self.data_args.image_folder
@@ -178,8 +182,8 @@ class SupervisedDataset(Dataset):
             if idx == 0:
                 inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
-                all_pixel_values.append(inputs['pixel_values'])
-                all_image_grid_thw.append(inputs['image_grid_thw'])
+                all_pixel_values.append(inputs[pixel_key])
+                all_image_grid_thw.append(inputs[grid_key])
 
             else:
                 prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, padding=False, return_tensors='pt')['input_ids']
@@ -214,11 +218,12 @@ class SupervisedDataset(Dataset):
 
         data_dict = dict(
             input_ids=input_ids,
-            pixel_values=pixel_values,
-            image_grid_thw=image_thw,
             attention_mask=attention_mask,
             labels=labels,
         )
+
+        data_dict[pixel_key] = pixel_values
+        data_dict[grid_key] = image_thw
         
         return data_dict
 
@@ -235,11 +240,21 @@ class DataCollatorForSupervisedDataset(object):
         batch_pixel_values = []
         batch_image_thw = []
 
+        sample = examples[0]
+
+        if "pixel_values_videos" in sample:
+            grid_key = "video_grid_thw"
+            pixel_key = "pixel_values_videos"
+
+        else:
+            grid_key = "image_grid_thw"
+            pixel_key = "pixel_values"
+
         for example in examples:
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
-            batch_pixel_values.append(example["pixel_values"])
-            batch_image_thw.append(example["image_grid_thw"])
+            batch_pixel_values.append(example[pixel_key])
+            batch_image_thw.append(example[grid_key])
         
         input_ids = pad_sequence(
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
@@ -254,8 +269,8 @@ class DataCollatorForSupervisedDataset(object):
             'input_ids': input_ids,
             'labels': labels,
             'attention_mask': attention_mask,
-            'pixel_values': pixel_values,
-            'image_grid_thw': image_thw,
+            pixel_key: pixel_values,
+            grid_key: image_thw,
         }
     
 
