@@ -1,4 +1,4 @@
-name: liger
+name: qwen2
 channels:
   - defaults
 dependencies:
