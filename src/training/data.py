@@ -129,10 +129,11 @@ class SupervisedDataset(Dataset):
                 image_files = [image_files]
 
             images = []
-           
+            
             for image_file in image_files:
                 if not os.path.exists(image_file):
-                    image_file = os.path.join(image_folder, image_file)
+                    if not image_file.startswith("http"):
+                        image_file = os.path.join(image_folder, image_file)
                 images.append(get_image_info(image_file, self.min_pixel, self.max_pixel))
 
         elif "video" in sources:
@@ -150,7 +151,8 @@ class SupervisedDataset(Dataset):
             videos = []
             for video_file in video_files:
                 if not os.path.exists(video_file):
-                    video_file = os.path.join(video_folder, video_file)
+                    if not video_file.startswith("http"):
+                        video_file = os.path.join(video_folder, video_file)
                 videos.append(get_video_info(video_file, self.max_pixel, self.data_args.fps))
         else:
             images = None
