@@ -173,6 +173,7 @@ bash scripts/finetune_lora_vision.sh
 ```
 
 **IMPORTANT:** If you want to tune the `embed_token` with LoRA, You need to tune `lm_head` together.
+**Note:** Freezing LLM would only work without LoRA (including vision_model LoRA).
 
 <details>
 <summary>Training arguments</summary>
@@ -186,6 +187,7 @@ bash scripts/finetune_lora_vision.sh
 - `--per_device_train_batch_size` (int): Training batch size per GPU per forwarding step.
 - `--gradient_accumulation_steps` (int): Gradient accumulation steps (default: 4).
 - `--freeze_vision_tower` (bool): Option to freeze vision_model (default: False).
+- `--freeze_llm` (bool): Option to freeze LLM (default: False).
 - `--tune_merger` (bool): Option to tune projector (default: True).
 - `--num_lora_modules` (int): Number of target modules to add LoRA (-1 means all layers).
 - `--vision_lr` (float): Learning rate for vision_model.

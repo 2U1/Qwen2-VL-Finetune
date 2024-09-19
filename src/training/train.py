@@ -49,6 +49,14 @@ def configure_vision_tower(model, training_args, compute_dtype, device):
     merger_params = model.visual.merger.parameters()
     set_requires_grad(merger_params, training_args.tune_merger)
 
+def configure_llm(model, training_args):
+    lm_head = model.lm_head.parameters()
+    set_requires_grad(lm_head, not training_args.freeze_llm)
+
+    llm_params = model.model.parameters()
+    set_requires_grad(llm_params, not training_args.freeze_llm)
+
+
 def train():
     global local_rank
 
@@ -134,13 +142,16 @@ def train():
     model.config.tokenizer_padding_side = processor.tokenizer.padding_side
     
     # When using LoRA, the model is rapped once more.
+    if training_args.lora_enable:
+        model_to_configure = model.model
+    else:
+        model_to_configure = model
+    
     if not training_args.vision_lora:
-        if training_args.lora_enable:
-            model_to_configure = model.model
-        else:
-            model_to_configure = model
-
         configure_vision_tower(model_to_configure, training_args, compute_dtype, training_args.device)
+
+    if training_args.freeze_llm:
+        configure_llm(model_to_configure, training_args)
 
     model.config.vision_lr = training_args.vision_lr
 
