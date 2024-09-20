@@ -90,6 +90,7 @@ def train():
             quantization_config = BitsAndBytesConfig(
                 load_in_4bit=training_args.bits==4,
                 load_in_8bit=training_args.bits==8,
+                llm_int8_skip_modules=["visual"],
                 llm_int8_threshold=6.0,
                 llm_int8_has_fp16_weight=False,
                 bnb_4bit_compute_dtype=compute_dtype,
@@ -101,7 +102,7 @@ def train():
     model = Qwen2VLForConditionalGeneration.from_pretrained(
         model_args.model_id,
         torch_dtype=compute_dtype,
-        _attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "eager", 
+        attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "eager", 
         **bnb_model_from_pretrained_args
     )
 

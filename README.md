@@ -25,7 +25,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 ## Supported Features
 
 - Deepspeed
-- LoRA
+- LoRA/QLoRA
 - Full-finetuning
 - Enable finetuning `vision_model` while using LoRA.
 - Disable/enable Flash Attention 2
