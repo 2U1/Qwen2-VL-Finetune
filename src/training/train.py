@@ -38,10 +38,9 @@ def set_requires_grad(parameters, requires_grad):
         p.requires_grad = requires_grad
 
 def configure_vision_tower(model, training_args, compute_dtype, device):
-    # Configure the vision tower as usual
     vision_tower = model.visual
     vision_tower.to(dtype=compute_dtype, device=device)
-    # Handle vision model parameters
+
     vision_model_params = model.visual.parameters()
     set_requires_grad(vision_model_params, not training_args.freeze_vision_tower)
     
@@ -66,6 +65,8 @@ def train():
     apply_liger_kernel_to_qwen2_vl()
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+
+    assert not (training_args.lora_enable and training_args.freeze_llm), 'When using LoRA, the LLM should not be frozen. If you want to freeze the LLM, please disable LoRA.'
 
     if not training_args.lora_enable:
         assert not training_args.vision_lora, \
@@ -147,12 +148,10 @@ def train():
         model_to_configure = model.model
     else:
         model_to_configure = model
-    
+        configure_llm(model_to_configure, training_args)
+
     if not training_args.vision_lora:
         configure_vision_tower(model_to_configure, training_args, compute_dtype, training_args.device)
-
-    if training_args.freeze_llm:
-        configure_llm(model_to_configure, training_args)
 
     model.config.vision_lr = training_args.vision_lr
 
