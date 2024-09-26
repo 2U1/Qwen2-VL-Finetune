@@ -178,8 +178,8 @@ class SupervisedDataset(Dataset):
             user_input = sources[j]
             gpt_response = sources[j + 1]
 
-            user_input = f"{DEFAULT_IM_START_TOKEN}{user_input['role']}\n{user_input['content']}\n{DEFAULT_IM_END_TOKEN}\n"
-            gpt_response = f"{DEFAULT_IM_START_TOKEN}{gpt_response['role']}\n{gpt_response['content']}\n{DEFAULT_IM_END_TOKEN}\n"
+            user_input = f"{DEFAULT_IM_START_TOKEN}{user_input['role']}\n{user_input['content']}\n{DEFAULT_IM_END_TOKEN}\n{DEFAULT_IM_START_TOKEN}{gpt_response['role']}\n"
+            gpt_response = f"{gpt_response['content']}\n{DEFAULT_IM_END_TOKEN}\n"
             
             if idx == 0:
                 inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
