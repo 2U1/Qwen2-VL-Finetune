@@ -270,11 +270,32 @@ Could not load library libcudnn_cnn_train.so.8. Error: /usr/local/cuda-12.1/lib/
 You could run `unset LD_LIBRARY_PATH` for this error.
 You could see this [issue](https://github.com/andimarafioti/florence2-finetuning/issues/2)
 
+## Inference
+
+**Note:** You should use the merged weight when trained with LoRA.
+
+### Gradio Infernce (WebUI)
+
+1. Install gradio
+
+```
+pip install gradio
+```
+
+2. Launch app
+
+```
+python -m src.serve.app \
+    --model-path /path/to/merged/weight
+```
+
+You can launch gradio based demo with this command. This can also set some other generation configs like `repetition_penalty`, `temperature` etc.
+
 ## TODO
 
 - [x] Support for video data
+- [x] Add demo for multi-image and video
 - [ ] Support for dyanmic truncation
-- [ ] Add demo for multi-image and video
 
 ## Known Issues
 
