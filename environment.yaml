@@ -138,7 +138,6 @@ dependencies:
       - torchaudio==2.3.1
       - torchvision==0.18.1
       - tornado==6.1
-      - transformers==4.45.1
       - tqdm==4.66.4
       - traitlets==5.14.2
       - triton==2.3.1
