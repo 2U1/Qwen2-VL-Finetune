@@ -64,7 +64,7 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         print('Model Loaded!!!')
 
     else:
-        processor = AutoProcessor.from_pretrained(model_path)
+        processor = AutoProcessor.from_pretrained(model_base)
         model = Qwen2VLForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
     return processor, model

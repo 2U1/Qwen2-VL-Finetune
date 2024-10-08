@@ -6,14 +6,8 @@ def merge_lora(args):
     processor, model = load_pretrained_model(model_path=args.model_path, model_base=args.model_base,
                                              model_name=model_name, device_map='cpu')
 
-    
-    if args.safe_serialization:
-        model.save_pretrained(args.save_model_path, safe_serialization=True)
-        processor.save_pretrained(args.save_model_path)
+    model.save_pretrained(args.save_model_path, safe_serialization=args.safe_serialization)
 
-    else:
-        model.save_pretrained(args.save_model_path, safe_serialization=False)
-        processor.save_pretrained(args.save_model_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
