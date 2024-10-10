@@ -29,18 +29,6 @@ def bot_streaming(message, history, generation_args):
                 videos.append(file_path)
             else:
                 images.append(file_path)
-    else:
-        for hist in reversed(history):
-            if isinstance(hist[0], tuple):
-                file_paths = hist[0][0]
-                if not isinstance(file_paths, list):
-                    file_paths = [file_paths]
-                for file_path in file_paths:
-                    if is_video_file(file_path):
-                        videos.append(file_path)
-                    else:
-                        images.append(file_path)
-                break
 
     conversation = []
     for user_turn, assistant_turn in history:
