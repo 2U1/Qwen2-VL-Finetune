@@ -155,6 +155,8 @@ class SupervisedDataset(Dataset):
                         video_file = os.path.join(video_folder, video_file)
                 videos.append(get_video_info(video_file, self.max_pixel, self.data_args.fps))
         else:
+            grid_key = None
+            pixel_key = None
             images = None
             videos = None
 
@@ -224,8 +226,9 @@ class SupervisedDataset(Dataset):
             labels=labels,
         )
 
-        data_dict[pixel_key] = pixel_values
-        data_dict[grid_key] = image_thw
+        if pixel_key and grid_key:
+            data_dict[pixel_key] = pixel_values
+            data_dict[grid_key] = image_thw
         
         return data_dict
 
@@ -247,15 +250,21 @@ class DataCollatorForSupervisedDataset(object):
             grid_key = "video_grid_thw"
             pixel_key = "pixel_values_videos"
 
-        else:
+        elif "pixel_values" in sample:
             grid_key = "image_grid_thw"
-            pixel_key = "pixel_values"
-
+            pixel_key = "pixel_values"\
+        
+        else:
+            grid_key = None
+            pixel_key = None
+        
         for example in examples:
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
-            batch_pixel_values.append(example[pixel_key])
-            batch_image_thw.append(example[grid_key])
+
+            if pixel_key and grid_key:
+                batch_pixel_values.append(example[pixel_key])
+                batch_image_thw.append(example[grid_key])
         
         input_ids = pad_sequence(
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
@@ -263,16 +272,21 @@ class DataCollatorForSupervisedDataset(object):
 
         attention_mask = input_ids != self.pad_token_id
         labels = pad_sequence(batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX)
-        pixel_values = torch.cat(batch_pixel_values, dim=0)
-        image_thw = torch.cat(batch_image_thw, dim=0)
 
-        return {
+
+        data_dict = {
             'input_ids': input_ids,
             'labels': labels,
             'attention_mask': attention_mask,
-            pixel_key: pixel_values,
-            grid_key: image_thw,
         }
+
+        if pixel_key and grid_key:
+            pixel_values = torch.cat(batch_pixel_values, dim=0)
+            image_thw = torch.cat(batch_image_thw, dim=0)
+            data_dict[pixel_key] = pixel_values
+            data_dict[grid_key] = image_thw
+
+        return data_dict
     
 
 def replace_image_tokens(input_string, is_video=False):
