@@ -288,7 +288,7 @@ class DataCollatorForSupervisedDataset(object):
 
         elif "pixel_values" in sample:
             grid_key = "image_grid_thw"
-            pixel_key = "pixel_values"\
+            pixel_key = "pixel_values"
         
         else:
             grid_key = None
