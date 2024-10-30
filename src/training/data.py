@@ -7,7 +7,8 @@ import transformers
 import ujson as json
 from torch.utils.data import Dataset
 from qwen_vl_utils import process_vision_info
-
+from torch.utils.data import Sampler
+import random 
 from .params import DataArguments
 from .constants import *
 
@@ -112,8 +113,8 @@ class SupervisedDataset(Dataset):
         return len(self.list_data_dict)
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-        sources = self.list_data_dict[i]
 
+        sources = self.list_data_dict[i]
         is_video = False
 
         processor = self.processor
@@ -155,6 +156,8 @@ class SupervisedDataset(Dataset):
                         video_file = os.path.join(video_folder, video_file)
                 videos.append(get_video_info(video_file, self.max_pixel, self.data_args.fps))
         else:
+            grid_key = "image_grid_thw"
+            pixel_key = "pixel_values"
             images = None
             videos = None
 
@@ -184,8 +187,10 @@ class SupervisedDataset(Dataset):
             if idx == 0:
                 inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
-                all_pixel_values.append(inputs[pixel_key])
-                all_image_grid_thw.append(inputs[grid_key])
+                if pixel_key in inputs:
+                    all_pixel_values.append(inputs[pixel_key])
+                if grid_key in inputs:
+                    all_image_grid_thw.append(inputs[grid_key])
 
             else:
                 prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, padding=False, return_tensors='pt')['input_ids']
@@ -212,9 +217,10 @@ class SupervisedDataset(Dataset):
 
         # eos_token_id = processor.tokenizer.convert_tokens_to_ids(DEFAULT_IM_END_TOKEN)
         # input_ids, labels = truncate_sequence(input_ids, labels, self.max_length, eos_token_id)
-
-        pixel_values = torch.cat(all_pixel_values, dim=0)
-        image_thw = torch.cat(all_image_grid_thw, dim=0)
+        if all_pixel_values:
+            pixel_values = torch.cat(all_pixel_values, dim=0)
+        if all_image_grid_thw:
+            image_thw = torch.cat(all_image_grid_thw, dim=0)
 
         attention_mask = (input_ids > -1000000).to(torch.long)
 
@@ -224,10 +230,43 @@ class SupervisedDataset(Dataset):
             labels=labels,
         )
 
-        data_dict[pixel_key] = pixel_values
-        data_dict[grid_key] = image_thw
+        if all_pixel_values:
+            data_dict[pixel_key] = pixel_values
+        if all_image_grid_thw:
+            data_dict[grid_key] = image_thw
         
         return data_dict
+
+
+class HomogeneousBatchSampler(Sampler):
+    def __init__(self, dataset, batch_size):
+        self.dataset = dataset
+        self.batch_size = batch_size
+
+        # Categorize indices based on type of data (text-only or text-image/video)
+        self.text_image_indices = [i for i, data in enumerate(dataset) if ("image" in data) or ("video" in data)]
+        self.text_only_indices = [i for i, data in enumerate(dataset) if ("image" not in data) and ("video" not in data)]
+
+    def __iter__(self):
+        # Shuffle indices for both groups (optional)
+        random.shuffle(self.text_only_indices)
+        random.shuffle(self.text_image_indices)
+        batches = []
+        # Yield homogeneous batches
+        for i in range(0, len(self.text_only_indices), self.batch_size):
+            batches.append(self.text_only_indices[i:i + self.batch_size])
+
+        for i in range(0, len(self.text_image_indices), self.batch_size):
+            batches.append(self.text_image_indices[i:i + self.batch_size])
+        
+        random.shuffle(batches)
+        for i, batch in enumerate(batches):
+            yield batch
+
+    def __len__(self):
+        # Number of batches will be sum of text-only and text-image/video batches
+        return (len(self.text_only_indices) //self.batch_size) + (len(self.text_image_indices) // self.batch_size)
+
 
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning."""
@@ -254,8 +293,10 @@ class DataCollatorForSupervisedDataset(object):
         for example in examples:
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
-            batch_pixel_values.append(example[pixel_key])
-            batch_image_thw.append(example[grid_key])
+            if pixel_key in example:
+                batch_pixel_values.append(example[pixel_key])
+            if grid_key in example:
+                batch_image_thw.append(example[grid_key])
         
         input_ids = pad_sequence(
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
@@ -263,16 +304,21 @@ class DataCollatorForSupervisedDataset(object):
 
         attention_mask = input_ids != self.pad_token_id
         labels = pad_sequence(batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX)
-        pixel_values = torch.cat(batch_pixel_values, dim=0)
-        image_thw = torch.cat(batch_image_thw, dim=0)
 
-        return {
-            'input_ids': input_ids,
-            'labels': labels,
-            'attention_mask': attention_mask,
-            pixel_key: pixel_values,
-            grid_key: image_thw,
-        }
+        data_dict = {
+            "input_ids": input_ids,
+            "labels": labels,
+            "attention_mask": attention_mask
+        }     
+        if len(batch_pixel_values):
+            pixel_values = torch.cat(batch_pixel_values, dim=0)
+            data_dict[pixel_key]=pixel_values
+
+        if len(batch_image_thw):
+            image_thw = torch.cat(batch_image_thw, dim=0)
+            data_dict[grid_key]=image_thw
+
+        return data_dict
     
 
 def replace_image_tokens(input_string, is_video=False):
@@ -306,6 +352,7 @@ def make_supervised_data_module(processor, data_args):
     )
     data_collator = DataCollatorForSupervisedDataset(pad_token_id=processor.tokenizer.pad_token_id)
 
+   
     return dict(train_dataset=sft_dataset,
                 eval_dataset=None,
                 data_collator=data_collator)

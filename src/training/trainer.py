@@ -1,7 +1,7 @@
 import os
 import torch
 import torch.nn as nn
-
+from training.data import HomogeneousBatchSampler
 from transformers import Trainer
 from transformers.trainer import (
     is_sagemaker_mp_enabled,
@@ -241,3 +241,17 @@ class QwenTrainer(Trainer):
     #             print(f"Training parameter {name}")
     # 
     #     return super().training_step(model, inputs)
+    
+    def _get_train_sampler(self) -> Optional[torch.utils.data.Sampler]:
+
+        return HomogeneousBatchSampler(
+            batch_size = self.args.train_batch_size * self.args.gradient_accumulation_steps,
+            dataset=self.train_dataset
+        )
+
+    def _get_eval_sampler(self) -> Optional[torch.utils.data.Sampler]:
+
+        return HomogeneousBatchSampler(
+            batch_size = self.args.eval_batch_size,
+            dataset=self.eval_dataset
+        )

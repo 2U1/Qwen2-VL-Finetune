@@ -12,6 +12,9 @@ from liger_kernel.transformers import apply_liger_kernel_to_qwen2_vl
 
 local_rank = None
 
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 def rank0_print(*args):
     if local_rank == 0 or local_rank == '0' or local_rank is None:
         print(*args)
