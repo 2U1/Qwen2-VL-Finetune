@@ -286,10 +286,14 @@ class DataCollatorForSupervisedDataset(object):
             grid_key = "video_grid_thw"
             pixel_key = "pixel_values_videos"
 
-        else:
+        elif "pixel_values" in sample:
             grid_key = "image_grid_thw"
-            pixel_key = "pixel_values"
-
+            pixel_key = "pixel_values"\
+        
+        else:
+            grid_key = None
+            pixel_key = None
+        
         for example in examples:
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
