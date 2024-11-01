@@ -113,17 +113,17 @@ class SupervisedDataset(Dataset):
         return len(self.list_data_dict)
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-
+        print(f"############ {i}")
         sources = self.list_data_dict[i]
         is_video = False
 
         processor = self.processor
-        if "image" in sources:
+        if "images" in sources:
             videos = None
             grid_key = "image_grid_thw"
             pixel_key = "pixel_values"
             
-            image_files = sources["image"]
+            image_files = sources["images"]
             image_folder = self.data_args.image_folder
 
             if isinstance(image_files, str):
@@ -244,8 +244,9 @@ class HomogeneousBatchSampler(Sampler):
         self.batch_size = batch_size
 
         # Categorize indices based on type of data (text-only or text-image/video)
-        self.text_image_indices = [i for i, data in enumerate(dataset) if ("image" in data) or ("video" in data)]
-        self.text_only_indices = [i for i, data in enumerate(dataset) if ("image" not in data) and ("video" not in data)]
+
+        self.text_image_indices = [i for i, data in enumerate(dataset.list_data_dict) if (("pixel_values_videos" in data) or ("pixel_values" in data))]
+        self.text_only_indices = [i for i, data in enumerate(dataset.list_data_dict) if not (("pixel_values_videos" in data) or ("pixel_values" in data))]
 
     def __iter__(self):
         # Shuffle indices for both groups (optional)
@@ -261,7 +262,8 @@ class HomogeneousBatchSampler(Sampler):
         
         random.shuffle(batches)
         for i, batch in enumerate(batches):
-            yield batch
+            for idx in batch:
+                yield idx
 
     def __len__(self):
         # Number of batches will be sum of text-only and text-image/video batches
