@@ -237,39 +237,6 @@ class SupervisedDataset(Dataset):
         
         return data_dict
 
-
-class HomogeneousBatchSampler(Sampler):
-    def __init__(self, dataset, batch_size):
-        self.dataset = dataset
-        self.batch_size = batch_size
-
-        # Categorize indices based on type of data (text-only or text-image/video)
-
-        self.text_image_indices = [i for i, data in enumerate(dataset.list_data_dict) if (("pixel_values_videos" in data) or ("pixel_values" in data))]
-        self.text_only_indices = [i for i, data in enumerate(dataset.list_data_dict) if not (("pixel_values_videos" in data) or ("pixel_values" in data))]
-
-    def __iter__(self):
-        # Shuffle indices for both groups (optional)
-        random.shuffle(self.text_only_indices)
-        random.shuffle(self.text_image_indices)
-        batches = []
-        # Yield homogeneous batches
-        for i in range(0, len(self.text_only_indices), self.batch_size):
-            batches.append(self.text_only_indices[i:i + self.batch_size])
-
-        for i in range(0, len(self.text_image_indices), self.batch_size):
-            batches.append(self.text_image_indices[i:i + self.batch_size])
-        
-        random.shuffle(batches)
-        for i, batch in enumerate(batches):
-            for idx in batch:
-                yield idx
-
-    def __len__(self):
-        # Number of batches will be sum of text-only and text-image/video batches
-        return (len(self.text_only_indices) //self.batch_size) + (len(self.text_image_indices) // self.batch_size)
-
-
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning."""
 
