@@ -11,6 +11,12 @@ from torch.utils.data import Sampler
 import random 
 from .params import DataArguments
 from .constants import *
+import json
+
+def read_json(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+    return data
 
 def truncate_sequence(input_ids, labels, max_length, eos_token_id):
     if input_ids.size(0) > max_length:
@@ -84,6 +90,86 @@ def get_video_info(video_path, max_pixels, fps):
     _, video_input = process_vision_info(messages)
 
     return video_input[0]
+
+class SupervisedDataset2(Dataset): # for toy demo, for train_data/data.json
+    def __init__(self, data_path):
+        super().__init__()
+        self.data = read_json(data_path)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return {"input_ids": self.data[idx]}
+    
+def find_assistant_content_sublist_indexes(l):
+    '''
+    A message from train_data/data.json may look like below:
+        {
+            "messages": [
+                {'role': 'user', 'content': [{'type': 'image', 'image': 'train_data/1.jpeg'}, {'type': 'text', 'text': '描述一下这个图片'}]}, 
+                {'role': 'assistant', 'content': [{'type': 'text', 'text': '这张图片展示了一位年轻女子和她的狗在海滩上玩耍的场景。女子穿着格子衬衫和黑色裤子，坐在沙滩上，与她的金毛犬互动。她们的手臂伸展着，似乎在进行某种游戏或训练。背景是广阔的海洋和晴朗的天空，阳光洒在沙滩上，营造出温暖而宁静的氛围。整体画面充满了快乐和放松的感觉。'}]}
+            ]
+        }
+    After apply_chat_template, the text will look like below:
+        ['<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>描述一下这个图片<|im_end|>\n<|im_start|>assistant\n这张图片展示了一位年轻女子和她的狗在海滩上玩耍的场景。女子穿着格子衬衫和黑色裤子，坐在沙滩上，与她的金毛犬互动。她们的手臂伸展着，似乎在进行某种游戏或训练。背景是广阔的海洋和晴朗的天空，阳光洒在沙滩上，营造出温暖而宁静的氛围。整体画面充满了快乐和放松的感觉。<|im_end|>\n']
+
+    This function tries to find the indexes of the assistant content in the input_ids list to build labels.
+    '''
+    # (Pdb++) processor.tokenizer.encode("<|im_start|>assistant")
+    # [151644, 77091]
+    # (Pdb++) processor.tokenizer.encode("<|im_end|>")
+    # [151645]
+
+    start_indexes = []
+    end_indexes = []
+
+    # Iterate through the list to find starting points
+    for i in range(len(l) - 1):
+        # Check if the current and next element form the start sequence
+        if l[i] == 151644 and l[i + 1] == 77091:
+            start_indexes.append(i)
+            # Now look for the first 151645 after the start
+            for j in range(i + 2, len(l)):
+                if l[j] == 151645:
+                    end_indexes.append(j)
+                    break  # Move to the next start after finding the end
+
+    return list(zip(start_indexes, end_indexes))
+
+class CollateFun(object):
+    def __init__(self, processor):
+        self.processor = processor
+    def __call__(self, batch):
+        # (Pdb++) processor.tokenizer.encode("<|im_start|>assistant")
+        # [151644, 77091]
+        # (Pdb++) processor.tokenizer.encode("<|im_end|>")
+        # [151645]
+        messages = [m["input_ids"]['messages'] for m in batch]
+        texts = [self.processor.apply_chat_template(msg, tokenize=False, add_generation_prompt=False) for msg in messages]
+        image_inputs, video_inputs = process_vision_info(messages)
+        inputs = self.processor(
+            text=texts,
+            images=image_inputs,
+            videos=video_inputs,
+            padding=True,
+            return_tensors="pt",
+        )
+        # inputs = inputs.to(device)
+
+        input_ids_lists = inputs['input_ids'].tolist()
+        assert len(messages) == len(input_ids_lists)
+
+        labels_list = []
+        for ids_list in input_ids_lists:
+            label_ids = [-100] * len(ids_list) # -100 is the ignore index in loss function
+            for begin_end_indexs in find_assistant_content_sublist_indexes(ids_list):
+                label_ids[begin_end_indexs[0]+2:begin_end_indexs[1]+1] = ids_list[begin_end_indexs[0]+2:begin_end_indexs[1]+1]
+            labels_list.append(label_ids)
+
+        labels_ids = torch.tensor(labels_list, dtype=torch.int64)
+        inputs["labels"] = labels_ids
+        return inputs
 
 class SupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
@@ -320,10 +406,10 @@ def llava_to_openai(conversations, is_video=False):
 
 def make_supervised_data_module(processor, data_args):
     """Make dataset and collator for supervised fine-tuning."""
-    sft_dataset = SupervisedDataset(
-        data_path=data_args.data_path, processor=processor, data_args=data_args
+    sft_dataset = SupervisedDataset2(
+        data_path=data_args.data_path
     )
-    data_collator = DataCollatorForSupervisedDataset(pad_token_id=processor.tokenizer.pad_token_id)
+    data_collator = CollateFun(processor)
 
    
     return dict(train_dataset=sft_dataset,
