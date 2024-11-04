@@ -15,10 +15,10 @@ deepspeed src/training/train.py \
     --lora_alpha 128 \
     --lora_dropout 0.05 \
     --num_lora_modules -1 \
-    --deepspeed scripts/zero3_offload.json \
+    --deepspeed scripts/zero2.json \
     --model_id $MODEL_NAME \
-    --data_path /path/to/your/training/data.json \
-    --image_folder /path/to/your/image/folder \
+    --data_path /home/mk.thomas/llmops/data/ml/qwen-7b-VL/v1/data/result/combined_all_formatted.json \
+    --image_folder /home/mk.thomas/llmops/data/ml/qwen-7b-VL/v1/data/images \
     --freeze_vision_tower False \
     --freeze_llm False \
     --tune_merger True \
@@ -43,6 +43,6 @@ deepspeed src/training/train.py \
     --report_to tensorboard \
     --lazy_preprocess True \
     --save_strategy "steps" \
-    --save_steps 200 \
+    --save_steps 500 \
     --save_total_limit 10 \
     --dataloader_num_workers 4
