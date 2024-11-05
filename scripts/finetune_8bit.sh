@@ -13,7 +13,7 @@ accelerate launch --fp8_backend=msamp --fp8_opt_level=O2 src/training/train.py \
     --data_path /path/to/your/training/data.json \
     --image_folder /path/to/your/image/folder \
     --lora_enable False \
-    --tune_img_projector True \
+    --tune_merger True \
     --freeze_vision_tower False \
     --freeze_llm False \
     --bf16 True \
@@ -24,7 +24,7 @@ accelerate launch --fp8_backend=msamp --fp8_opt_level=O2 src/training/train.py \
     --min_pixels $((512 * 28 * 28)) \
     --max_pixels $((1280 * 28 * 28)) \
     --learning_rate 1e-5 \
-    --projector_lr 1e-5 \
+    --merger_lr 1e-5 \
     --vision_lr 2e-6 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
