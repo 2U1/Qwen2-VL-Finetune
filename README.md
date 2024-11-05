@@ -51,16 +51,12 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 Install the required packages using `environment.yaml`.
 
-The code of Qwen2-VL has been in the latest Hugging face transformers and we advise you to build from source.
-The latest dev version loads wrong version of config file, so you should install the following versions for now.
-
 ### Using `environment.yaml`
 
 ```bash
 conda env create -f environment.yaml
 conda activate qwen2
 pip install qwen-vl-utils
-pip install git+https://github.com/huggingface/transformers@21fac7abba2a37fae86106f87fcf9974fd1e3830
 pip install flash-attn==2.5.8 --no-build-isolation
 ```
 
@@ -175,6 +171,14 @@ To run the training script, use the following command:
 ```bash
 bash scripts/finetune.sh
 ```
+
+### Full Finetuning with 8-bit
+
+```bash
+bash scripts/finetune_8bit.sh
+```
+
+This script will finetune the model with 8bit-adamw and fp8 model dtype. If you run out of vram, you could use this.
 
 ### Finetune with LoRA
 
