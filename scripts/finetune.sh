@@ -5,12 +5,11 @@ MODEL_NAME="Qwen/Qwen2-VL-7B-Instruct"
 # MODEL_NAME="Qwen/Qwen2-VL-2B-Instruct"
 
 export PYTHONPATH=src:$PYTHONPATH
-
+# export NCCL_DEBUG="INFO"
 deepspeed src/training/train.py \
-    --deepspeed scripts/zero3_offload.json \
     --model_id $MODEL_NAME \
-    --data_path /path/to/your/training/data.json \
-    --image_folder /path/to/your/image/folder \
+    --data_path /home/mk.thomas/llmops/data/ml/qwen-7b-VL/v1/data/result/combined_test.json \
+    --image_folder /home/mk.thomas/llmops/data/ml/qwen-7b-VL/v1/data/images \
     --freeze_vision_tower False \
     --freeze_llm False \
     --tune_merger True \
@@ -19,8 +18,8 @@ deepspeed src/training/train.py \
     --disable_flash_attn2 False \
     --output_dir output/fft_0912 \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 2 \
-    --gradient_accumulation_steps 8 \
+    --per_device_train_batch_size 1 \
+    --gradient_accumulation_steps 1 \
     --min_pixels $((512 * 28 * 28)) \
     --max_pixels $((1280 * 28 * 28)) \
     --learning_rate 1e-5 \
@@ -37,4 +36,4 @@ deepspeed src/training/train.py \
     --save_strategy "steps" \
     --save_steps 200 \
     --save_total_limit 10 \
-    --dataloader_num_workers 4
+    --dataloader_num_workers 1

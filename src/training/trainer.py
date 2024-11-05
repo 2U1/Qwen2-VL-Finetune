@@ -1,8 +1,9 @@
 import os
 import torch
 import torch.nn as nn
-
+from training.data import HomogeneousBatchSampler
 from transformers import Trainer
+from torch.utils.data import DataLoader, Dataset
 from transformers.trainer import (
     is_sagemaker_mp_enabled,
     get_parameter_names,
@@ -15,6 +16,9 @@ from transformers.trainer import (
     PREFIX_CHECKPOINT_DIR,
     logger,
 )
+import datasets
+from transformers.utils import is_datasets_available
+from transformers.trainer_utils import seed_worker
 import safetensors
 from peft import PeftModel
 from typing import Optional
@@ -23,6 +27,7 @@ from transformers.processing_utils import ProcessorMixin
 from transformers.modeling_utils import PreTrainedModel
 from peft import PeftModel
 from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3
+from typing import Optional, Union
 
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
@@ -241,3 +246,4 @@ class QwenTrainer(Trainer):
     #             print(f"Training parameter {name}")
     # 
     #     return super().training_step(model, inputs)
+    
