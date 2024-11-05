@@ -10,6 +10,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2024/11/05] Add memory efficient 8-bit training.
 - [2024/09/12] 🔥Now the model is trained using [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
 - [2024/09/11] Supports setting different learning rates to projector and vision model.
 - [2024/09/11] 🔥Supports multi-image and video training.
