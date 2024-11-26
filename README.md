@@ -165,6 +165,8 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 
 ## Training
 
+**Note:** With the mixed-dataset (e.g. some data in a batch have images while some don't) It only supports with zero2.
+
 To run the training script, use the following command:
 
 ### Full Finetuning

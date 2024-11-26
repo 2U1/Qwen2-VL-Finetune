@@ -186,8 +186,9 @@ class SupervisedDataset(Dataset):
             if idx == 0:
                 inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
-                all_pixel_values.append(inputs[pixel_key])
-                all_image_grid_thw.append(inputs[grid_key])
+                if pixel_key and grid_key:
+                    all_pixel_values.append(inputs[pixel_key])
+                    all_image_grid_thw.append(inputs[grid_key])
 
             else:
                 prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, padding=False, return_tensors='pt')['input_ids']
@@ -215,8 +216,9 @@ class SupervisedDataset(Dataset):
         # eos_token_id = processor.tokenizer.convert_tokens_to_ids(DEFAULT_IM_END_TOKEN)
         # input_ids, labels = truncate_sequence(input_ids, labels, self.max_length, eos_token_id)
 
-        pixel_values = torch.cat(all_pixel_values, dim=0)
-        image_thw = torch.cat(all_image_grid_thw, dim=0)
+        if pixel_key and grid_key:
+            pixel_values = torch.cat(all_pixel_values, dim=0)
+            image_thw = torch.cat(all_image_grid_thw, dim=0)
 
         attention_mask = (input_ids > -1000000).to(torch.long)
 
@@ -252,7 +254,7 @@ class DataCollatorForSupervisedDataset(object):
 
         elif "pixel_values" in sample:
             grid_key = "image_grid_thw"
-            pixel_key = "pixel_values"\
+            pixel_key = "pixel_values"
         
         else:
             grid_key = None
@@ -262,7 +264,7 @@ class DataCollatorForSupervisedDataset(object):
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
 
-            if pixel_key and grid_key:
+            if pixel_key in example and grid_key in example:
                 batch_pixel_values.append(example[pixel_key])
                 batch_image_thw.append(example[grid_key])
         
