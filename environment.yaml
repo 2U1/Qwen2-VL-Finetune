@@ -42,7 +42,7 @@ dependencies:
       - debugpy==1.6.7
       - decorator==5.1.1
       - decord==0.6.0
-      - deepspeed==0.14.4
+      - deepspeed==0.15.4
       - dill==0.3.8
       - dnspython==2.7.0
       - docker-pycreds==0.4.0
