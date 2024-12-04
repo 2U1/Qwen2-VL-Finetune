@@ -70,7 +70,7 @@ dependencies:
       - jupyter-client==7.3.4
       - jupyter-core==5.7.2
       - jupyterlab-widgets==3.0.13
-      - liger-kernel-nightly==0.3.1.dev20241105010508
+      - liger-kernel==0.4.2
       - markdown-it-py==3.0.0
       - markupsafe==2.1.3
       - matplotlib-inline==0.1.6
@@ -147,7 +147,7 @@ dependencies:
       - tornado==6.1
       - tqdm==4.66.4
       - traitlets==5.14.2
-      - transformers==4.46.1
+      - transformers==4.46.3
       - triton==3.1.0
       - trl==0.8.6
       - typing-extensions==4.9.0
