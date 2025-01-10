@@ -11,6 +11,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/01/11] Updated 8-bit training with ms_amp fp8 with opt_level O3.
 - [2024/11/05] Add memory efficient 8-bit training.
 - [2024/09/12] 🔥Now the model is trained using [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
 - [2024/09/11] Supports setting different learning rates to projector and vision model.
@@ -28,11 +29,14 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
   - [Dataset Preparation](#dataset-preparation)
   - [Training](#training)
     - [Full Finetuning](#full-finetuning)
+    - [Full Finetuning with 8-bit](#full-finetuning-with-8-bit)
     - [Finetune with LoRA](#finetune-with-lora)
     - [Train with video dataset](#train-with-video-dataset)
       - [Merge LoRA Weights](#merge-lora-weights)
       - [Image Resolution for performance boost](#image-resolution-for-performance-boost)
       - [Issue for libcudnn error](#issue-for-libcudnn-error)
+  - [Inference](#inference)
+    - [Gradio Infernce (WebUI)](#gradio-infernce-webui)
   - [TODO](#todo)
   - [Known Issues](#known-issues)
   - [License](#license)
@@ -182,7 +186,8 @@ bash scripts/finetune.sh
 bash scripts/finetune_8bit.sh
 ```
 
-This script will finetune the model with 8bit-adamw and fp8 model dtype. If you run out of vram, you could use this.
+This script will finetune the model with fp8 model dtype. If you run out of vram, you could use this.<br>
+You can even use offloading with fp8 training. For detailed config, you could change the deepspeed config files.
 
 ### Finetune with LoRA
 

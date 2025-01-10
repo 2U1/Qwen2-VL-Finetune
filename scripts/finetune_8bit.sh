@@ -6,9 +6,8 @@ MODEL_NAME="Qwen/Qwen2-VL-7B-Instruct"
 
 export PYTHONPATH=src:$PYTHONPATH
 
-accelerate launch --fp8_backend=msamp --fp8_opt_level=O2 src/training/train.py \
-    --deepspeed scripts/zero3.json \
-    --optim adamw_bnb_8bit \
+deepspeed src/training/train.py \
+    --deepspeed scripts/zero3_fp8.json \
     --model_id $MODEL_NAME \
     --data_path /path/to/your/training/data.json \
     --image_folder /path/to/your/image/folder \
