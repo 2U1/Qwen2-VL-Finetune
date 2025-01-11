@@ -143,7 +143,7 @@ class QwenTrainer(Trainer):
 
         return self.optimizer
 
-    def _save_checkpoint(self, model, trial, metrics=None):
+    def _save_checkpoint(self, model, trial):
         if self.args.lora_enable:
             checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
 
@@ -164,22 +164,6 @@ class QwenTrainer(Trainer):
                 # Save RNG state
                 self._save_rng_state(output_dir)
 
-            # Determine the new best metric / best model checkpoint
-            if metrics is not None and self.args.metric_for_best_model is not None:
-                metric_to_check = self.args.metric_for_best_model
-                if not metric_to_check.startswith("eval_"):
-                    metric_to_check = f"eval_{metric_to_check}"
-                metric_value = metrics[metric_to_check]
-
-                operator = np.greater if self.args.greater_is_better else np.less
-                if (
-                    self.state.best_metric is None
-                    or self.state.best_model_checkpoint is None
-                    or operator(metric_value, self.state.best_metric)
-                ):
-                    self.state.best_metric = metric_value
-                    self.state.best_model_checkpoint = output_dir
-
             # Save the Trainer state
             if self.args.should_save:
                 # Update the `TrainerControl` state to where we are currently
@@ -196,7 +180,7 @@ class QwenTrainer(Trainer):
                 self._rotate_checkpoints(use_mtime=False, output_dir=run_dir)
 
         else:
-            super(QwenTrainer, self)._save_checkpoint(model, trial, metrics)
+            super(QwenTrainer, self)._save_checkpoint(model, trial)
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
             # If we are executing this function, we are the process zero, so we don't check for that.
