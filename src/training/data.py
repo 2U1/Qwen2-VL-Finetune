@@ -269,11 +269,11 @@ class DataCollatorForSupervisedDataset(object):
                 batch_image_thw.append(example[grid_key])
         
         input_ids = pad_sequence(
-            batch_input_ids, padding_side='right', padding_value=self.pad_token_id
+            batch_input_ids, padding_side='left', padding_value=self.pad_token_id
         )
 
         attention_mask = input_ids != self.pad_token_id
-        labels = pad_sequence(batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX)
+        labels = pad_sequence(batch_label_ids, padding_side='left', padding_value=IGNORE_INDEX)
 
 
         data_dict = {

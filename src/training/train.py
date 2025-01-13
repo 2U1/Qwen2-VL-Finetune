@@ -136,7 +136,8 @@ def train():
         model = get_peft_model(model, peft_config)
 
     processor = AutoProcessor.from_pretrained(model_args.model_id,
-                                              padding_side="right",
+                                            # The default setting is padding_side="left"
+                                              padding_side="left",
                                               min_pixels=data_args.min_pixels,
                                               max_pixels=data_args.max_pixels,)
 
