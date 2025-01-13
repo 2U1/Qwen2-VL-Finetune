@@ -73,7 +73,7 @@ pip install flash-attn==2.5.8 --no-build-isolation
 
 The script requires a dataset formatted according to the LLaVA specification. The dataset should be a JSON file where each entry contains information about conversations and images. Ensure that the image paths in the dataset match the provided `--image_folder`.<br>
 
-**When using a multi-image dataset, the image tokens should all be `<image>`, and the image file names should have been in a list.**
+**When using a multi-image dataset, the image tokens should all be `<image>`, and the image file names should have been in a list.**<br><br>
 **Please see the example below and follow format your data.**
 
 <details>
@@ -168,6 +168,9 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 **Note:** Qwen2-VL uses a video as a sequential of images.
 
 </details>
+<br><br>
+
+Adding the new domain-specific data on top of the general data from open-source data will enhance downstream capabilities while retaining the foundational skills. Of course, you can also choose to fine-tune solely on the new data based on your requirements.
 
 ## Training
 

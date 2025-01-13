@@ -4,6 +4,11 @@
 MODEL_NAME="Qwen/Qwen2-VL-7B-Instruct"
 # MODEL_NAME="Qwen/Qwen2-VL-2B-Instruct"
 
+GLOBAL_BATCH_SIZE=128
+BATCH_PER_DEVICE=4
+NUM_DEVICES=8
+GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
+
 export PYTHONPATH=src:$PYTHONPATH
 
 deepspeed src/training/train.py \
@@ -19,8 +24,8 @@ deepspeed src/training/train.py \
     --disable_flash_attn2 False \
     --output_dir output/test_train \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 1 \
-    --gradient_accumulation_steps 1 \
+    --per_device_train_batch_size $BATCH_PER_DEVICE \
+    --gradient_accumulation_steps $GRAD_ACCUM_STEPS \
     --max_pixels $((360 * 420)) \
     --fps 1.0 \
     --learning_rate 1e-5 \
