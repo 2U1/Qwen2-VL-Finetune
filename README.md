@@ -12,6 +12,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/01/18] 🔥Supports mixed-modality data.
 - [2025/01/11] Updated 8-bit training with ms_amp fp8 with opt_level O3.
 - [2024/11/05] Add memory efficient 8-bit training.
 - [2024/09/12] 🔥Now the model is trained using [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
@@ -190,7 +191,7 @@ bash scripts/finetune.sh
 bash scripts/finetune_8bit.sh
 ```
 
-**You need to install [ms-amp](https://github.com/Azure/MS-AMP) to use this script.**
+**You need to install [ms-amp](https://github.com/Azure/MS-AMP) to use this script.**<br>
 This script will finetune the model with fp8 model dtype. If you run out of vram, you could use this.<br>
 You can even use offloading with fp8 training. For detailed config, you could change the deepspeed config files.
 
@@ -317,7 +318,7 @@ You can launch gradio based demo with this command. This can also set some other
 
 - [x] Support for video data
 - [x] Add demo for multi-image and video
-- [ ] Support for dyanmic truncation
+- [ ] Handle mixed-modality data in dataset and collator
 
 ## Known Issues
 

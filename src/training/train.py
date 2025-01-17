@@ -9,6 +9,7 @@ from training.params import DataArguments, ModelArguments, TrainingArguments
 from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib
 from liger_kernel.transformers import apply_liger_kernel_to_qwen2_vl
+from monkey_patch_forward import replace_forward_with_mixed_modality_forward
 
 local_rank = None
 
@@ -62,7 +63,10 @@ def train():
     parser = HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments))
     
-    apply_liger_kernel_to_qwen2_vl()
+    # It monkey patches the forward to handle mixed modality inputs.
+    replace_forward_with_mixed_modality_forward()
+    # This is becuase mixed-modality training monkey-patches the model forward method.
+    apply_liger_kernel_to_qwen2_vl(fused_linear_cross_entropy=False)
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
