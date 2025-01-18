@@ -139,7 +139,7 @@ class SupervisedDataset(Dataset):
                 images.append(get_image_info(image_file, self.min_pixel, self.max_pixel))
 
         elif "video" in sources:
-            is_dummy = True
+            is_dummy = False
             is_video = True
             images=None
             grid_key = "video_grid_thw"
@@ -158,11 +158,10 @@ class SupervisedDataset(Dataset):
                         video_file = os.path.join(video_folder, video_file)
                 videos.append(get_video_info(video_file, self.max_pixel, self.data_args.fps))
         else:
-            grid_key = None
-            pixel_key = None
-            images = None
-            videos = None
-            is_dummy = True
+            grid_key = "image_grid_thw"
+            pixel_key = "pixel_values"
+            img = Image.new('RGB', (224, 224), (0,0,0))
+            dummy_inputs = processor.image_processor([img], videos=None, return_tensors='pt')
 
         sources = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video))
 
@@ -211,13 +210,9 @@ class SupervisedDataset(Dataset):
             all_input_ids.append(input_ids)
             all_labels.append(labels)
 
-        if images is None and videos is None:
-            grid_key = "image_grid_thw"
-            pixel_key = "pixel_values"
-            img = Image.new('RGB', (224, 224), (0,0,0))
-            dummy_inputs = processor.image_processor([img], videos=None, return_tensors='pt')
-            all_pixel_values.append(dummy_inputs[pixel_key])
-            all_image_grid_thw.append(dummy_inputs[grid_key])
+        if is_dummy:
+            all_pixel_values.append(torch.tensor(dummy_inputs[pixel_key]))
+            all_image_grid_thw.append(torch.tensor(dummy_inputs[grid_key]))
         
         # There is no need for eos or bos tokens in the input_ids
         # Qwen2-VL does not use them
