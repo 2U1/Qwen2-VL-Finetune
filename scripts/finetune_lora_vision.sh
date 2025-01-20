@@ -25,8 +25,8 @@ deepspeed src/training/train.py \
     --model_id $MODEL_NAME \
     --data_path /path/to/your/training/data.json \
     --image_folder /path/to/your/image/folder \
-    --freeze_vision_tower False \
-    --freeze_llm False \
+    --freeze_vision_tower True \
+    --freeze_llm True \
     --tune_merger True \
     --bf16 True \
     --fp16 False \

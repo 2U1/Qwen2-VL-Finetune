@@ -70,11 +70,15 @@ def train():
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    assert not (training_args.lora_enable and training_args.freeze_llm), 'When using LoRA, the LLM should not be frozen. If you want to freeze the LLM, please disable LoRA.'
+    if training_args.lora_enable and not training_args.freeze_llm:
+        raise ValueError("If `lora_enable` is True, `freeze_llm` must also be True.")
 
     if not training_args.lora_enable:
         assert not training_args.vision_lora, \
             "Error: training_args.lora_enable is not enabled, but training_args.vision_lora is enabled."
+        
+    if training_args.vision_lora and not training_args.freeze_vision_tower:
+        raise ValueError("If `vision_lora` is True, `freeze_vision_tower` must also be True.")
 
     else:
         if training_args.lora_namespan_exclude is not None:
