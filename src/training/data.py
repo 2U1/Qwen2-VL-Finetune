@@ -158,10 +158,11 @@ class SupervisedDataset(Dataset):
                         video_file = os.path.join(video_folder, video_file)
                 videos.append(get_video_info(video_file, self.max_pixel, self.data_args.fps))
         else:
-            grid_key = "image_grid_thw"
-            pixel_key = "pixel_values"
-            img = Image.new('RGB', (224, 224), (0,0,0))
-            dummy_inputs = processor.image_processor([img], videos=None, return_tensors='pt')
+            is_dummy=True
+            grid_key = None
+            pixel_key = None
+            images=None
+            videos=None
 
         sources = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video))
 
@@ -209,10 +210,6 @@ class SupervisedDataset(Dataset):
 
             all_input_ids.append(input_ids)
             all_labels.append(labels)
-
-        if is_dummy:
-            all_pixel_values.append(torch.tensor(dummy_inputs[pixel_key]))
-            all_image_grid_thw.append(torch.tensor(dummy_inputs[grid_key]))
         
         # There is no need for eos or bos tokens in the input_ids
         # Qwen2-VL does not use them
@@ -221,9 +218,6 @@ class SupervisedDataset(Dataset):
 
         # eos_token_id = processor.tokenizer.convert_tokens_to_ids(DEFAULT_IM_END_TOKEN)
         # input_ids, labels = truncate_sequence(input_ids, labels, self.max_length, eos_token_id)
-
-        pixel_values = torch.cat(all_pixel_values, dim=0)
-        image_thw = torch.cat(all_image_grid_thw, dim=0)
 
         attention_mask = (input_ids > -1000000).to(torch.long)
 
@@ -234,8 +228,11 @@ class SupervisedDataset(Dataset):
             is_dummy=is_dummy,
         )
 
-        data_dict[pixel_key] = pixel_values
-        data_dict[grid_key] = image_thw
+        if pixel_key and grid_key:
+            pixel_values = all_pixel_values
+            image_thw = all_image_grid_thw
+            data_dict[pixel_key] = pixel_values
+            data_dict[grid_key] = image_thw
         
         return data_dict
 
@@ -251,23 +248,20 @@ class DataCollatorForSupervisedDataset(object):
         batch_pixel_values = []
         batch_image_thw = []
         batch_dummy_flags = []
-
-        sample = examples[0]
-
-        if "pixel_values_videos" in sample:
-            grid_key = "video_grid_thw"
-            pixel_key = "pixel_values_videos"
-
-        elif "pixel_values" in sample:
-            grid_key = "image_grid_thw"
-            pixel_key = "pixel_values"
-        
         
         for example in examples:
+            keys = example.keys()
+            if "pixel_values_videos" in keys:
+                grid_key = "video_grid_thw"
+                pixel_key = "pixel_values_videos"
+                batch_pixel_values.append(example[pixel_key])
+            elif "pixel_values" in keys:
+                grid_key = "image_grid_thw"
+                pixel_key = "pixel_values"
+                batch_image_thw.append(example[grid_key])
+            
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
-            batch_pixel_values.append(example[pixel_key])
-            batch_image_thw.append(example[grid_key])
             batch_dummy_flags.append(example["is_dummy"])
         
         input_ids = pad_sequence(
@@ -284,7 +278,7 @@ class DataCollatorForSupervisedDataset(object):
             'is_dummy': torch.tensor(batch_dummy_flags, dtype=torch.bool)
         }
 
-        if pixel_key and grid_key:
+        if len(batch_pixel_values) > 0:
             pixel_values = torch.cat(batch_pixel_values, dim=0)
             image_thw = torch.cat(batch_image_thw, dim=0)
             data_dict[pixel_key] = pixel_values

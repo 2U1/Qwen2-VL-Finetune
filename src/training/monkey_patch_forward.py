@@ -4,10 +4,12 @@ from typing import Optional, List, Union
 from torch.nn import CrossEntropyLoss
 import numpy as np
 import transformers.models.qwen2_vl.modeling_qwen2_vl
+from liger_kernel.transformers.fused_linear_cross_entropy import (
+    LigerFusedLinearCrossEntropyLoss,
+)
 
 def replace_forward_with_mixed_modality_forward():
     transformers.models.qwen2_vl.modeling_qwen2_vl.Qwen2VLForConditionalGeneration.forward = mixed_modality_forward
-
 
 def mixed_modality_forward(
     self,
@@ -28,7 +30,7 @@ def mixed_modality_forward(
     rope_deltas: Optional[torch.LongTensor] = None,
     cache_position: Optional[torch.LongTensor] = None,
     is_dummy: Optional[torch.BoolTensor] = None,  # Added for mixed-modality training
-) -> Union[torch.Tensor, ...]:
+):
     
     output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
     output_hidden_states = (
@@ -40,6 +42,14 @@ def mixed_modality_forward(
         inputs_embeds = self.model.embed_tokens(input_ids)
         if pixel_values is not None:
             pixel_values = pixel_values.type(self.visual.get_dtype())
+            # This is a really nasty hack to avoid deepspeed error.
+            # It it consumes a lot of time for taking this.
+            # It need to be fixed in the future.
+            if is_dummy.any():
+                for i in range(is_dummy.shape[0]):
+                    if is_dummy[i]:
+                        # Setting dummy pixel_values for avoid deepspeed error.
+                        self.visual(torch.zeros(14903, 1176), gird_thw=torch.Tensor([[1, 98, 146]]))
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
             n_image_tokens = (input_ids == self.config.image_token_id).sum().item()
             n_image_features = image_embeds.shape[0]
@@ -47,22 +57,6 @@ def mixed_modality_forward(
                 raise ValueError(
                     f"Image features and image tokens do not match: tokens: {n_image_tokens}, features {n_image_features}"
                 )
-            
-            if is_dummy.any():
-                batch_size = input_ids.shape[0]
-                sample_image_token_counts = []
-                for i_b in range(batch_size):
-                    sample_image_token_counts.append((input_ids[i_b] == self.config.image_token_id).sum().item())
-                prev = 0
-                for i_b in range(batch_size):
-                    cur_count = sample_image_token_counts[i_b]
-                    start = prev
-                    end = start + cur_count
-                    prev = end
-                    if is_dummy[i_b]:
-                        if cur_count > 0:
-                            chunk = image_embeds[start:end]
-                            image_embeds[start:end] = chunk.mean() * 0 
             image_mask = (
                 (input_ids == self.config.image_token_id)
                 .unsqueeze(-1)
@@ -122,26 +116,38 @@ def mixed_modality_forward(
         output_attentions=output_attentions,
         output_hidden_states=output_hidden_states,
         return_dict=return_dict,
-        cache_position=cache_position,
     )
 
     hidden_states = outputs[0]
-    logits = self.lm_head(hidden_states)
 
     loss = None
-    if labels is not None:
-        # Upcast to float if we need to compute the loss to avoid potential precision issues
-        logits = logits.float()
-        # Shift so that tokens < n predict n
-        shift_logits = logits[..., :-1, :].contiguous()
+    logits = None
+
+    if self.training and (labels is not None):
+        shift_hidden_states = hidden_states[..., :-1, :].contiguous()
         shift_labels = labels[..., 1:].contiguous()
-        # Flatten the tokens
-        loss_fct = CrossEntropyLoss()
-        shift_logits = shift_logits.view(-1, self.config.vocab_size)
+
+        # Flatten tokens
+        shift_hidden_states = shift_hidden_states.view(-1, self.config.hidden_size)
         shift_labels = shift_labels.view(-1)
-        # Enable model parallelism
-        shift_labels = shift_labels.to(shift_logits.device)
-        loss = loss_fct(shift_logits, shift_labels)
+
+        lce = LigerFusedLinearCrossEntropyLoss()
+        loss = lce(self.lm_head.weight, shift_hidden_states, shift_labels)
+    else:
+        logits = self.lm_head(hidden_states)
+        if labels is not None:
+            # Upcast to float if we need to compute the loss to avoid potential precision issues
+            logits = logits.float()
+            # Shift so that tokens < n predict n
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            # Flatten the tokens
+            loss_fct = CrossEntropyLoss()
+            shift_logits = shift_logits.view(-1, self.config.vocab_size)
+            shift_labels = shift_labels.view(-1)
+            # Enable model parallelism
+            shift_labels = shift_labels.to(shift_logits.device)
+            loss = loss_fct(shift_logits, shift_labels)
 
     if not return_dict:
         output = (logits,) + outputs[1:]
@@ -154,4 +160,4 @@ def mixed_modality_forward(
         hidden_states=outputs.hidden_states,
         attentions=outputs.attentions,
         rope_deltas=self.rope_deltas,
-    )
+    )#
