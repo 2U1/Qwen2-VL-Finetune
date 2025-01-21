@@ -175,8 +175,6 @@ Adding the new domain-specific data on top of the general data from open-source 
 
 ## Training
 
-**Note:** With the mixed-dataset (e.g. some data in a batch have images while some don't) It only supports with zero2.
-
 To run the training script, use the following command:
 
 ### Full Finetuning
@@ -318,7 +316,7 @@ You can launch gradio based demo with this command. This can also set some other
 
 - [x] Support for video data
 - [x] Add demo for multi-image and video
-- [ ] Handle mixed-modality data in dataset and collator
+- [x] Handle mixed-modality data in dataset and collator
 
 ## Known Issues
 
