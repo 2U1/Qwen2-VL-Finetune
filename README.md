@@ -12,6 +12,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/01/24] Fix error in LoRA training.
 - [2025/01/18] 🔥Supports mixed-modality data.
 - [2025/01/11] Updated 8-bit training with ms_amp fp8 with opt_level O3.
 - [2024/11/05] Add memory efficient 8-bit training.
@@ -208,7 +209,6 @@ bash scripts/finetune_lora_vision.sh
 ```
 
 **IMPORTANT:** If you want to tune the `embed_token` with LoRA, You need to tune `lm_head` together.
-**Note:** Freezing LLM would only work without LoRA (including vision_model LoRA).
 
 <details>
 <summary>Training arguments</summary>
