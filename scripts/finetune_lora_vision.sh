@@ -12,6 +12,7 @@ NUM_DEVICES=8
 GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
 
 # If you want to tune the `embed_token` with LoRA, You need to tune `lm_head` together
+# You should freeze the the merger also, becuase the merger is included in the vision_tower.
 
 deepspeed src/training/train.py \
     --lora_enable True \
@@ -27,7 +28,7 @@ deepspeed src/training/train.py \
     --image_folder /path/to/your/image/folder \
     --freeze_vision_tower True \
     --freeze_llm True \
-    --tune_merger True \
+    --tune_merger False \
     --bf16 True \
     --fp16 False \
     --disable_flash_attn2 False \
