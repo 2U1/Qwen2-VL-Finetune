@@ -147,12 +147,13 @@ def train():
 
     processor = AutoProcessor.from_pretrained(model_args.model_id,
                                             # The default setting is padding_side="left"
-                                              padding_side="left",
+                                            # However, padding right is more efficient when training.
+                                              padding_side="right",
                                               min_pixels=data_args.min_pixels,
                                               max_pixels=data_args.max_pixels,)
 
     # model.config.tokenizer_model_max_length = processor.tokenizer.model_max_length
-    model.config.tokenizer_padding_side = processor.tokenizer.padding_side
+    # model.config.tokenizer_padding_side = processor.tokenizer.padding_side
     model.config.vision_lr = training_args.vision_lr
 
     if training_args.bits in [4, 8]:

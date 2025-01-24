@@ -239,8 +239,9 @@ class SupervisedDataset(Dataset):
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning."""
 
-    def __init__(self, pad_token_id: int):
+    def __init__(self, pad_token_id: int, padding_side: str = "right"):
         self.pad_token_id = pad_token_id
+        self.padding_side = padding_side
 
     def __call__(self, examples):
         batch_input_ids = []
@@ -265,11 +266,11 @@ class DataCollatorForSupervisedDataset(object):
             batch_dummy_flags.append(example["is_dummy"])
         
         input_ids = pad_sequence(
-            batch_input_ids, padding_side='left', padding_value=self.pad_token_id
+            batch_input_ids, padding_side=self.padding_side, padding_value=self.pad_token_id
         )
 
         attention_mask = input_ids != self.pad_token_id
-        labels = pad_sequence(batch_label_ids, padding_side='left', padding_value=IGNORE_INDEX)
+        labels = pad_sequence(batch_label_ids, padding_side=self.padding_side, padding_value=IGNORE_INDEX)
 
         data_dict = {
             'input_ids': input_ids,
@@ -316,7 +317,7 @@ def make_supervised_data_module(processor, data_args):
     sft_dataset = SupervisedDataset(
         data_path=data_args.data_path, processor=processor, data_args=data_args
     )
-    data_collator = DataCollatorForSupervisedDataset(pad_token_id=processor.tokenizer.pad_token_id)
+    data_collator = DataCollatorForSupervisedDataset(pad_token_id=processor.tokenizer.pad_token_id, padding_side=processor.tokenizer.padding_side)
 
     return dict(train_dataset=sft_dataset,
                 eval_dataset=None,
