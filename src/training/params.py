@@ -14,8 +14,8 @@ class TrainingArguments(TrainingArguments):
     cache_dir: Optional[str] = field(default=None)
     optim: str = field(default="adamw_torch")
     adam_beta1: float = field(default=0.9)
-    adam_beta2: float = field(default=0.98)
-    adam_epsilon: float = field(default=1e-7)
+    adam_beta2: float = field(default=0.999)
+    adam_epsilon: float = field(default=1e-8)
 
     freeze_vision_tower: bool = field(default=False)
     freeze_llm: bool = field(default=False)
@@ -44,6 +44,7 @@ class TrainingArguments(TrainingArguments):
     )
     lora_enable: bool = False
     vision_lora: bool = False
+    use_dora: bool = False
     lora_rank: int = 64
     lora_alpha: int = 16
     lora_dropout: float = 0.05

@@ -12,6 +12,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/01/24] Add option for using DoRA.
 - [2025/01/24] Fix error in LoRA training.
 - [2025/01/18] 🔥Supports mixed-modality data.
 - [2025/01/11] Updated 8-bit training with ms_amp fp8 with opt_level O3.
@@ -231,7 +232,10 @@ bash scripts/finetune_lora_vision.sh
 - `--bf16` (bool): Option for using bfloat16.
 - `--fp16` (bool): Option for using fp16.
 - `--min_pixels` (int): Option for minimum input tokens.
-- `--max_pixles` (int): OPtion for maximum maxmimum tokens.
+- `--max_pixles` (int): Option for maximum maxmimum tokens.
+- `--lora_enable` (bool): Option for using LoRA.
+- `--vision_lora` (bool): Option for including `vision_tower` in LoRA module. `lora_enable` should be `True` to use this option.
+- `--use_dora` (bool): Option for using DoRA instead of LoRA. `lora_enable` should be `True` to use this option.
 - `--lora_namespan_exclude` (str): Exclude modules with namespans to add LoRA.
 - `--max_seq_length` (int): Maximum sequence length (default: 32K).
 - `--bits` (int): Quantization bits (default: 16).

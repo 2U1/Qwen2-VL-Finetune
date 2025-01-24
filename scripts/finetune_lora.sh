@@ -15,9 +15,10 @@ GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
 
 deepspeed src/training/train.py \
     --lora_enable True \
+    --use_dora False \
     --lora_namespan_exclude "['lm_head', 'embed_tokens']" \
     --lora_rank 64 \
-    --lora_alpha 128 \
+    --lora_alpha 64 \
     --lora_dropout 0.05 \
     --num_lora_modules -1 \
     --deepspeed scripts/zero3_offload.json \
@@ -39,8 +40,9 @@ deepspeed src/training/train.py \
     --learning_rate 1e-4 \
     --merger_lr 1e-5 \
     --vision_lr 2e-6 \
-    --weight_decay 0. \
+    --weight_decay 0.1 \
     --warmup_ratio 0.03 \
+    --adam_beta2 0.95 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
