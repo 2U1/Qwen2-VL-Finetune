@@ -1,6 +1,6 @@
-# Fine-tuning Qwen2-VL
+# Fine-tuning Qwen2-VL Series
 
-This repository contains a script for training [Qwen2-VL](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct) with only using HuggingFace and [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
+This repository contains a script for training [Qwen2-VL](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct) and [Qwen2.5-VL](https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct) with only using HuggingFace and [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
 
 ## Other projects
 
@@ -12,6 +12,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/02/03] 🔥Supports Qwen2.5-VL.
 - [2025/01/24] Add option for using DoRA.
 - [2025/01/24] Fix error in LoRA training.
 - [2025/01/18] 🔥Supports mixed-modality data.
@@ -23,7 +24,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Table of Contents
 
-- [Fine-tuning Qwen2-VL](#fine-tuning-qwen2-vl)
+- [Fine-tuning Qwen2-VL Series](#fine-tuning-qwen2-vl-series)
   - [Other projects](#other-projects)
   - [Update](#update)
   - [Table of Contents](#table-of-contents)
@@ -68,6 +69,12 @@ conda env create -f environment.yaml
 conda activate qwen2
 pip install qwen-vl-utils
 pip install flash-attn==2.5.8 --no-build-isolation
+```
+
+Please install the latest transformers from git to finetune Qwen2.5-VL
+
+```
+pip install git+https://github.com/huggingface/transformers accelerate
 ```
 
 **Note:** You should install flash-attn after installing the other packages.
@@ -176,6 +183,8 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 Adding the new domain-specific data on top of the general data from open-source data will enhance downstream capabilities while retaining the foundational skills. Of course, you can also choose to fine-tune solely on the new data based on your requirements.
 
 ## Training
+
+**Note:** Liger-kernel isn't supported for Qwen2.5-VL but, I'll monkey patch some of the APIs for it. It will be updated soon. <br>
 
 To run the training script, use the following command:
 
@@ -321,6 +330,8 @@ You can launch gradio based demo with this command. This can also set some other
 - [x] Support for video data
 - [x] Add demo for multi-image and video
 - [x] Handle mixed-modality data in dataset and collator
+- [x] Support Qwen2.5-VL
+- [ ] Monkey-patch liger-kernel for Qwen2.5-VL
 
 ## Known Issues
 

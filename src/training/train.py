@@ -2,14 +2,14 @@ import os
 import torch
 from peft import LoraConfig, get_peft_model
 import ast
-from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2VLForConditionalGeneration, HfArgumentParser
+from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2VLForConditionalGeneration, HfArgumentParser, Qwen2_5_VLForConditionalGeneration
 from training.trainer import QwenTrainer
 from training.data import make_supervised_data_module
 from training.params import DataArguments, ModelArguments, TrainingArguments
 from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib
 from liger_kernel.transformers import apply_liger_kernel_to_qwen2_vl
-from monkey_patch_forward import replace_forward_with_mixed_modality_forward
+from monkey_patch_forward import replace_qwen2_5_with_mixed_modality_forward, replace_qwen_2_with_mixed_modality_forward
 
 local_rank = None
 
@@ -63,12 +63,17 @@ def train():
     parser = HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments))
     
-    # It monkey patches the forward to handle mixed modality inputs.
-    replace_forward_with_mixed_modality_forward()
-    # This is becuase mixed-modality training monkey-patches the model forward method.
-    apply_liger_kernel_to_qwen2_vl(fused_linear_cross_entropy=False)
-    
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    
+    if "Qwen2.5" in model_args.model_id:
+        # Liger-kernel for Qwen2.5 is not supported yet.
+        replace_qwen2_5_with_mixed_modality_forward()
+    else:
+        # It monkey patches the forward to handle mixed modality inputs.
+        replace_qwen_2_with_mixed_modality_forward()
+        # This is becuase mixed-modality training monkey-patches the model forward method.
+        apply_liger_kernel_to_qwen2_vl(fused_linear_cross_entropy=False)
+    
 
     if training_args.lora_enable and not training_args.freeze_llm:
         raise ValueError("If `lora_enable` is True, `freeze_llm` must also be True.")
@@ -80,13 +85,14 @@ def train():
     if training_args.vision_lora and not training_args.freeze_vision_tower:
         raise ValueError("If `vision_lora` is True, `freeze_vision_tower` must also be True.")
 
-    if training_args.lora_namespan_exclude is not None:
-        training_args.lora_namespan_exclude = ast.literal_eval(training_args.lora_namespan_exclude)
     else:
-        training_args.lora_namespan_exclude = []
+        if training_args.lora_namespan_exclude is not None:
+            training_args.lora_namespan_exclude = ast.literal_eval(training_args.lora_namespan_exclude)
+        else:
+            training_args.lora_namespan_exclude = []
 
-    if not training_args.vision_lora:
-        training_args.lora_namespan_exclude += ["visual"]
+        if not training_args.vision_lora:
+            training_args.lora_namespan_exclude += ["visual"]
 
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
@@ -107,12 +113,20 @@ def train():
             )
         ))
 
-    model = Qwen2VLForConditionalGeneration.from_pretrained(
-        model_args.model_id,
-        torch_dtype=compute_dtype,
-        attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
-        **bnb_model_from_pretrained_args
-    )
+    if "Qwen2.5" in model_args.model_id:
+        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            model_args.model_id,
+            torch_dtype=compute_dtype,
+            attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
+            **bnb_model_from_pretrained_args
+        )
+    else:
+        model = Qwen2VLForConditionalGeneration.from_pretrained(
+            model_args.model_id,
+            torch_dtype=compute_dtype,
+            attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
+            **bnb_model_from_pretrained_args
+        )
 
     model.config.use_cache = False
     model_to_configure = model
@@ -147,13 +161,13 @@ def train():
 
     processor = AutoProcessor.from_pretrained(model_args.model_id,
                                             # The default setting is padding_side="left"
-                                            # However, padding right is more efficient when training.
+                                            # When training using the right-side padding is more efficient.
                                               padding_side="right",
                                               min_pixels=data_args.min_pixels,
                                               max_pixels=data_args.max_pixels,)
 
     # model.config.tokenizer_model_max_length = processor.tokenizer.model_max_length
-    # model.config.tokenizer_padding_side = processor.tokenizer.padding_side
+    model.config.tokenizer_padding_side = processor.tokenizer.padding_side
     model.config.vision_lr = training_args.vision_lr
 
     if training_args.bits in [4, 8]:

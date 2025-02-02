@@ -81,9 +81,9 @@ def get_video_info(video_path, max_pixels, fps):
         }
     ]
 
-    _, video_input = process_vision_info(messages)
+    _, video_input, video_kwargs = process_vision_info(messages, return_video_kwargs=True)
 
-    return video_input[0]
+    return video_input[0], video_kwargs
 
 class SupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
@@ -156,7 +156,8 @@ class SupervisedDataset(Dataset):
                 if not os.path.exists(video_file):
                     if not video_file.startswith("http"):
                         video_file = os.path.join(video_folder, video_file)
-                videos.append(get_video_info(video_file, self.max_pixel, self.data_args.fps))
+                video_input, video_kwargs = get_video_info(video_file, self.max_pixel, self.data_args.fps)
+                videos.append(video_input)
         else:
             is_dummy=True
             grid_key = None
@@ -187,13 +188,18 @@ class SupervisedDataset(Dataset):
             user_input = f"{DEFAULT_IM_START_TOKEN}{user_input['role']}\n{user_input['content']}\n{DEFAULT_IM_END_TOKEN}\n{DEFAULT_IM_START_TOKEN}{gpt_response['role']}\n"
             gpt_response = f"{gpt_response['content']}\n{DEFAULT_IM_END_TOKEN}\n"
             
-            if DEFAULT_IMAGE_TOKEN in user_input or DEFAULT_VIDEO_TOKEN in user_input:
+            if DEFAULT_IMAGE_TOKEN in user_input:
                 inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
                 if pixel_key and grid_key:
                     all_pixel_values.append(inputs[pixel_key])
                     all_image_grid_thw.append(inputs[grid_key])
-
+            elif DEFAULT_VIDEO_TOKEN in user_input:
+                inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt', **video_kwargs)
+                prompt_input_ids = inputs['input_ids']
+                if pixel_key and grid_key:
+                    all_pixel_values.append(inputs[pixel_key])
+                    all_image_grid_thw.append(inputs[grid_key])
             else:
                 prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, padding=False, return_tensors='pt')['input_ids']
 
