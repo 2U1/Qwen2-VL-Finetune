@@ -7,14 +7,20 @@ import numpy as np
 import transformers.models.qwen2_vl.modeling_qwen2_vl
 import transformers.models.qwen2_5_vl.modeling_qwen2_5_vl
 from liger_kernel.transformers.fused_linear_cross_entropy import (
-    LigerFusedLinearCrossEntropyLoss,
+    LigerFusedLinearCrossEntropyLoss
 )
+from liger_kernel.transformers.swiglu import LigerSwiGLUMLP
+from liger_kernel.transformers.rms_norm import LigerRMSNorm
+from liger_kernel.transformers.qwen2vl_mrope import liger_multimodal_rotary_pos_emb
 
 def replace_qwen_2_with_mixed_modality_forward():
     transformers.models.qwen2_vl.modeling_qwen2_vl.Qwen2VLForConditionalGeneration.forward = qwen_2_mixed_modality_forward
 
 def replace_qwen2_5_with_mixed_modality_forward():
     transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2_5_VLForConditionalGeneration.forward = qwen2_5_mixed_modality_forward
+    transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2MLP = LigerSwiGLUMLP
+    transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2RMSNorm = LigerRMSNorm
+    transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.apply_multimodal_rotary_pos_emb = (liger_multimodal_rotary_pos_emb)
 
 def qwen_2_mixed_modality_forward(
     self,
@@ -282,22 +288,35 @@ def qwen2_5_mixed_modality_forward(
     )
 
     hidden_states = outputs[0]
-    logits = self.lm_head(hidden_states)
-
+    
     loss = None
-    if labels is not None:
-        # Upcast to float if we need to compute the loss to avoid potential precision issues
-        logits = logits.float()
-        # Shift so that tokens < n predict n
-        shift_logits = logits[..., :-1, :].contiguous()
+    logits = None
+
+    if self.training and (labels is not None):
+        shift_hidden_states = hidden_states[..., :-1, :].contiguous()
         shift_labels = labels[..., 1:].contiguous()
-        # Flatten the tokens
-        loss_fct = CrossEntropyLoss()
-        shift_logits = shift_logits.view(-1, self.config.vocab_size)
+
+        # Flatten tokens
+        shift_hidden_states = shift_hidden_states.view(-1, self.config.hidden_size)
         shift_labels = shift_labels.view(-1)
-        # Enable model parallelism
-        shift_labels = shift_labels.to(shift_logits.device)
-        loss = loss_fct(shift_logits, shift_labels)
+
+        lce = LigerFusedLinearCrossEntropyLoss()
+        loss = lce(self.lm_head.weight, shift_hidden_states, shift_labels)
+    else:
+        logits = self.lm_head(hidden_states)
+        if labels is not None:
+            # Upcast to float if we need to compute the loss to avoid potential precision issues
+            logits = logits.float()
+            # Shift so that tokens < n predict n
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            # Flatten the tokens
+            loss_fct = CrossEntropyLoss()
+            shift_logits = shift_logits.view(-1, self.config.vocab_size)
+            shift_labels = shift_labels.view(-1)
+            # Enable model parallelism
+            shift_labels = shift_labels.to(shift_logits.device)
+            loss = loss_fct(shift_logits, shift_labels)
 
     if not return_dict:
         output = (logits,) + outputs[1:]
