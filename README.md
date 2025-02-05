@@ -2,6 +2,10 @@
 
 This repository contains a script for training [Qwen2-VL](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct) and [Qwen2.5-VL](https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct) with only using HuggingFace and [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
 
+## Notification
+
+**Currently Qwen2.5-VL has a bug when using Flash-attention2. You need to disable to train the model.**
+
 ## Other projects
 
 **[[Phi3-Vision Finetuning]](https://github.com/2U1/Phi3-Vision-Finetune)**<br>
@@ -12,6 +16,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/02/05] Fixed code for properly use image
 - [2025/02/03] Support Liger-kernel for Qwen2.5-VL
 - [2025/02/03] 🔥Supports Qwen2.5-VL.
 - [2025/01/24] Add option for using DoRA.

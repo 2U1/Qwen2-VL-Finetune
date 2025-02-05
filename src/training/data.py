@@ -93,6 +93,7 @@ class SupervisedDataset(Dataset):
         data_path: str | list,
         processor: transformers.ProcessorMixin,
         data_args: DataArguments,
+        model_id,
         padding=True,
     ):
         super(SupervisedDataset, self).__init__()
@@ -101,6 +102,7 @@ class SupervisedDataset(Dataset):
         else:
             list_data_dict = data_path
 
+        self.model_id = model_id
         self.processor = processor
         self.list_data_dict = list_data_dict
         self.data_args = data_args
@@ -171,6 +173,7 @@ class SupervisedDataset(Dataset):
         all_labels = []
         all_pixel_values = []
         all_image_grid_thw = []
+        all_second_gird = []
 
         # Qwen2-VL uses a default system message so I've added this.
         if len(SYSTEM_MESSAGE) > 0:
@@ -191,15 +194,19 @@ class SupervisedDataset(Dataset):
             if DEFAULT_IMAGE_TOKEN in user_input:
                 inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
-                if pixel_key and grid_key:
-                    all_pixel_values.append(inputs[pixel_key])
-                    all_image_grid_thw.append(inputs[grid_key])
+                all_pixel_values.append(inputs[pixel_key])
+                all_image_grid_thw.append(inputs[grid_key])
+            
             elif DEFAULT_VIDEO_TOKEN in user_input:
-                inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt', **video_kwargs)
+                if "Qwen2.5" in self.model_id:
+                    inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt', **video_kwargs)
+                    all_second_gird.append(inputs["second_per_grid_ts"])
+                else:
+                    inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
-                if pixel_key and grid_key:
-                    all_pixel_values.append(inputs[pixel_key])
-                    all_image_grid_thw.append(inputs[grid_key])
+                all_pixel_values.append(inputs[pixel_key])
+                all_image_grid_thw.append(inputs[grid_key])
+
             else:
                 prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, padding=False, return_tensors='pt')['input_ids']
 
@@ -235,19 +242,22 @@ class SupervisedDataset(Dataset):
         )
 
         if pixel_key and grid_key:
-            pixel_values = all_pixel_values
-            image_thw = all_image_grid_thw
+            pixel_values = torch.cat(all_pixel_values, dim=0)
+            image_thw = torch.cat(all_image_grid_thw, dim=0)
             data_dict[pixel_key] = pixel_values
             data_dict[grid_key] = image_thw
+
+        if len(all_second_gird) > 0:
+            second_gird = all_second_gird
+            data_dict["second_per_grid_ts"] = second_gird
         
         return data_dict
 
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning."""
 
-    def __init__(self, pad_token_id: int, padding_side: str = "right"):
+    def __init__(self, pad_token_id: int):
         self.pad_token_id = pad_token_id
-        self.padding_side = padding_side
 
     def __call__(self, examples):
         batch_input_ids = []
@@ -255,6 +265,7 @@ class DataCollatorForSupervisedDataset(object):
         batch_pixel_values = []
         batch_image_thw = []
         batch_dummy_flags = []
+        batch_second_per_grid_ts = []
         
         for example in examples:
             keys = example.keys()
@@ -262,21 +273,26 @@ class DataCollatorForSupervisedDataset(object):
                 grid_key = "video_grid_thw"
                 pixel_key = "pixel_values_videos"
                 batch_pixel_values.append(example[pixel_key])
+                batch_image_thw.append(example[grid_key])
             elif "pixel_values" in keys:
                 grid_key = "image_grid_thw"
                 pixel_key = "pixel_values"
+                batch_pixel_values.append(example[pixel_key])
                 batch_image_thw.append(example[grid_key])
             
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
             batch_dummy_flags.append(example["is_dummy"])
+
+            if "second_per_grid_ts" in keys:
+                batch_second_per_grid_ts.extend(example["second_per_grid_ts"])
         
         input_ids = pad_sequence(
-            batch_input_ids, padding_side=self.padding_side, padding_value=self.pad_token_id
+            batch_input_ids, padding_side='right', padding_value=self.pad_token_id
         )
 
         attention_mask = input_ids != self.pad_token_id
-        labels = pad_sequence(batch_label_ids, padding_side=self.padding_side, padding_value=IGNORE_INDEX)
+        labels = pad_sequence(batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX)
 
         data_dict = {
             'input_ids': input_ids,
@@ -290,6 +306,9 @@ class DataCollatorForSupervisedDataset(object):
             image_thw = torch.cat(batch_image_thw, dim=0)
             data_dict[pixel_key] = pixel_values
             data_dict[grid_key] = image_thw
+
+        if len(batch_second_per_grid_ts) > 0:
+            data_dict["second_per_grid_ts"] = torch.stack(batch_second_per_grid_ts)
 
         return data_dict
     
@@ -318,12 +337,12 @@ def llava_to_openai(conversations, is_video=False):
 
     return transformed_data
 
-def make_supervised_data_module(processor, data_args):
+def make_supervised_data_module(model_id, processor, data_args):
     """Make dataset and collator for supervised fine-tuning."""
     sft_dataset = SupervisedDataset(
-        data_path=data_args.data_path, processor=processor, data_args=data_args
+        data_path=data_args.data_path, processor=processor, data_args=data_args, model_id=model_id
     )
-    data_collator = DataCollatorForSupervisedDataset(pad_token_id=processor.tokenizer.pad_token_id, padding_side=processor.tokenizer.padding_side)
+    data_collator = DataCollatorForSupervisedDataset(pad_token_id=processor.tokenizer.pad_token_id)
 
     return dict(train_dataset=sft_dataset,
                 eval_dataset=None,
