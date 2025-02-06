@@ -4,7 +4,8 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Notification
 
-**Currently Qwen2.5-VL has a bug when using Flash-attention2. You need to disable to train the model.**
+**Currently Qwen2.5-VL has a bug when using Flash-attention2. ~~You need to disable to train the model.~~**<br>
+**I made a quick fix monkey-patching code for it.**
 
 ## Other projects
 
