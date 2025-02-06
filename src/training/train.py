@@ -190,6 +190,7 @@ def train():
 
     trainer = QwenTrainer(
         model=model,
+        processor=processor,
         args=training_args,
         **data_module
     )

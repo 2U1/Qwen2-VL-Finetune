@@ -7,6 +7,7 @@ def merge_lora(args):
                                              model_name=model_name, device_map='cpu')
 
     model.save_pretrained(args.save_model_path, safe_serialization=args.safe_serialization)
+    processor.save_pretrained(args.save_model_path)
 
 
 if __name__ == "__main__":
