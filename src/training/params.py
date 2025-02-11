@@ -63,6 +63,8 @@ class DataArguments:
     )
     lazy_preprocess: bool = False
     image_folder: Optional[str] = field(default=None)
-    min_pixels: Optional[int] = field(default=3136)
-    max_pixels: Optional[int] = field(default=12845056)
+    image_min_pixels: Optional[int] = field(default=3136)
+    image_max_pixels: Optional[int] = field(default=12845056)
+    video_min_pixels: Optional[int] = field(default=100352)
+    video_max_pixels: Optional[int] = field(default=602112)
     fps: float = 1.0

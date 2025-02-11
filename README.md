@@ -17,6 +17,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/02/11] 🔥Support all kind of mixed-modality (Video + Image + Text)
 - [2025/02/05] Fixed code for properly use image
 - [2025/02/03] Support Liger-kernel for Qwen2.5-VL
 - [2025/02/03] 🔥Supports Qwen2.5-VL.
@@ -191,6 +192,8 @@ Adding the new domain-specific data on top of the general data from open-source 
 
 ## Training
 
+**Note:** Deepspedd zero2 is faster than zero3, however it consumes more memory. Also, most of the time zero2 is more stable than zero3.
+
 To run the training script, use the following command:
 
 ### Full Finetuning
@@ -245,8 +248,10 @@ bash scripts/finetune_lora_vision.sh
 - `--learning_rate` (float): Learning rate for language module.
 - `--bf16` (bool): Option for using bfloat16.
 - `--fp16` (bool): Option for using fp16.
-- `--min_pixels` (int): Option for minimum input tokens.
-- `--max_pixles` (int): Option for maximum maxmimum tokens.
+- `--image_min_pixels` (int): Option for minimum input tokens for image.
+- `--image_max_pixles` (int): Option for maximum maxmimum tokens for image.
+- `--video_min_pixels` (int): Option for minimum input tokens for video.
+- `--video_max_pixles` (int): Option for maximum maxmimum tokens for video.
 - `--lora_enable` (bool): Option for using LoRA.
 - `--vision_lora` (bool): Option for including `vision_tower` in LoRA module. `lora_enable` should be `True` to use this option.
 - `--use_dora` (bool): Option for using DoRA instead of LoRA. `lora_enable` should be `True` to use this option.
@@ -268,7 +273,8 @@ bash scripts/finetune_lora_vision.sh
 
 ### Train with video dataset
 
-You can train the model using a video dataset. However, Qwen2-VL processes videos as a sequence of images, so you’ll need to select specific frames and treat them as multiple images for training. You can set LoRA configs and use for LoRA too.
+You can train the model using a video dataset. You can set LoRA configs and use for LoRA too.<br>
+**IMPORTANT:** If your dataset are composed with (image + video) please use [zero2](./scripts/zero2.json)
 
 ```bash
 bash scripts/finetune_video.sh
@@ -276,7 +282,8 @@ bash scripts/finetune_video.sh
 
 **Note:** When training with video, it just as multi-image so you should adjust the `max_pixels` for maximum resolution and `fps` based on the available VRAM.
 
-If you run out of vram, you can use [zero3_offload](./scripts/zero3_offload.json) instead of [zero3](./scripts/zero3_offload.json). However, using zero3 is preferred.
+If you run out of vram, you can use [zero3_offload](./scripts/zero3_offload.json) instead of [zero3](./scripts/zero3_offload.json).<br>
+You could use [zero2_offload](./scripts/zero2_offload.json) for mixed-modality data.
 
 #### Merge LoRA Weights
 
@@ -294,11 +301,11 @@ The model splits the image into `token * 28 * 28` so you could just change the t
 For example:
 
 ```
-min_pixels = 256 * 28 * 28
-max_pixels = 1280 * 28 * 28
+image_min_pixels = 256 * 28 * 28
+image_max_pixels = 1280 * 28 * 28
+video_min_pixels = 128 * 28 * 28
+video_max_pixels = 768 * 28 * 28
 ```
-
-**Note:** For video, the you don't have to set like this, you could just set the maximum resolution for it.
 
 #### Issue for libcudnn error
 

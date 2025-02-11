@@ -29,8 +29,8 @@ deepspeed src/training/train.py \
     --num_train_epochs 1 \
     --per_device_train_batch_size $BATCH_PER_DEVICE \
     --gradient_accumulation_steps $GRAD_ACCUM_STEPS \
-    --min_pixels $((512 * 28 * 28)) \
-    --max_pixels $((1280 * 28 * 28)) \
+    --image_min_pixels $((512 * 28 * 28)) \
+    --image_max_pixels $((1280 * 28 * 28)) \
     --learning_rate 1e-5 \
     --merger_lr 1e-5 \
     --vision_lr 2e-6 \

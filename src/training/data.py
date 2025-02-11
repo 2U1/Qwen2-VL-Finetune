@@ -64,7 +64,7 @@ def get_image_info(image_path, min_pixel, max_pixel):
 
     return image_input[0]
 
-def get_video_info(video_path, max_pixels, fps):
+def get_video_info(video_path, min_pixels, max_pixels, fps):
     # Using this because of process_vision_info function
     # Need to fix this in the future
 
@@ -74,6 +74,7 @@ def get_video_info(video_path, max_pixels, fps):
              {
                 "type": "video", 
                 "video": video_path,
+                "min_pixels": min_pixels,
                 "max_pixels": max_pixels,
                 "fps": fps
             }
@@ -107,8 +108,10 @@ class SupervisedDataset(Dataset):
         self.list_data_dict = list_data_dict
         self.data_args = data_args
         self.padding = padding
-        self.min_pixel = data_args.min_pixels
-        self.max_pixel = data_args.max_pixels
+        self.image_min_pixel = data_args.image_min_pixels
+        self.image_max_pixel = data_args.image_max_pixels
+        self.video_min_pixel = data_args.video_min_pixels
+        self.video_max_pixel = data_args.video_max_pixels
         self.fps = data_args.fps
 
     def __len__(self):
@@ -138,7 +141,7 @@ class SupervisedDataset(Dataset):
                 if not os.path.exists(image_file):
                     if not image_file.startswith("http"):
                         image_file = os.path.join(image_folder, image_file)
-                images.append(get_image_info(image_file, self.min_pixel, self.max_pixel))
+                images.append(get_image_info(image_file, self.image_min_pixel, self.image_max_pixel))
 
         elif "video" in sources:
             is_dummy = False
@@ -158,7 +161,7 @@ class SupervisedDataset(Dataset):
                 if not os.path.exists(video_file):
                     if not video_file.startswith("http"):
                         video_file = os.path.join(video_folder, video_file)
-                video_input, video_kwargs = get_video_info(video_file, self.max_pixel, self.data_args.fps)
+                video_input, video_kwargs = get_video_info(video_file, self.video_min_pixel, self.video_max_pixel, self.data_args.fps)
                 videos.append(video_input)
         else:
             is_dummy=True
@@ -184,7 +187,7 @@ class SupervisedDataset(Dataset):
             all_input_ids.append(system_message_input_ids.squeeze(0))
             all_labels.append(system_labels.squeeze(0))
 
-        for idx, j in enumerate(range(0, len(sources), 2)):
+        for _, j in enumerate(range(0, len(sources), 2)):
             user_input = sources[j]
             gpt_response = sources[j + 1]
 
@@ -263,6 +266,8 @@ class DataCollatorForSupervisedDataset(object):
         batch_input_ids = []
         batch_label_ids = []
         batch_pixel_values = []
+        batch_pixel_video_values = []
+        batch_video_thw = []
         batch_image_thw = []
         batch_dummy_flags = []
         batch_second_per_grid_ts = []
@@ -270,15 +275,11 @@ class DataCollatorForSupervisedDataset(object):
         for example in examples:
             keys = example.keys()
             if "pixel_values_videos" in keys:
-                grid_key = "video_grid_thw"
-                pixel_key = "pixel_values_videos"
-                batch_pixel_values.append(example[pixel_key])
-                batch_image_thw.append(example[grid_key])
+                batch_pixel_video_values.append(example["pixel_values_videos"])
+                batch_video_thw.append(example["video_grid_thw"])
             elif "pixel_values" in keys:
-                grid_key = "image_grid_thw"
-                pixel_key = "pixel_values"
-                batch_pixel_values.append(example[pixel_key])
-                batch_image_thw.append(example[grid_key])
+                batch_pixel_values.append(example["pixel_values"])
+                batch_image_thw.append(example["image_grid_thw"])
             
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
@@ -304,8 +305,14 @@ class DataCollatorForSupervisedDataset(object):
         if len(batch_pixel_values) > 0:
             pixel_values = torch.cat(batch_pixel_values, dim=0)
             image_thw = torch.cat(batch_image_thw, dim=0)
-            data_dict[pixel_key] = pixel_values
-            data_dict[grid_key] = image_thw
+            data_dict["pixel_values"] = pixel_values
+            data_dict["image_grid_thw"] = image_thw
+
+        if len(batch_pixel_video_values) > 0:
+            pixel_video_values = torch.cat(batch_pixel_video_values, dim=0)
+            video_thw = torch.cat(batch_video_thw, dim=0)
+            data_dict["pixel_values_videos"] = pixel_video_values
+            data_dict["video_grid_thw"] = video_thw
 
         if len(batch_second_per_grid_ts) > 0:
             data_dict["second_per_grid_ts"] = batch_second_per_grid_ts

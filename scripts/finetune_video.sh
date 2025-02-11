@@ -13,8 +13,7 @@ BATCH_PER_DEVICE=4
 NUM_DEVICES=8
 GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
 
-
-
+# If your dataset is mixed with images and videos, you need to use zero2.
 deepspeed src/training/train.py \
     --deepspeed scripts/zero3_offload.json \
     --model_id $MODEL_NAME \
@@ -31,7 +30,7 @@ deepspeed src/training/train.py \
     --num_train_epochs 1 \
     --per_device_train_batch_size $BATCH_PER_DEVICE \
     --gradient_accumulation_steps $GRAD_ACCUM_STEPS \
-    --max_pixels $((360 * 420)) \
+    --video_max_pixels $((360 * 420)) \
     --fps 1.0 \
     --learning_rate 1e-5 \
     --merger_lr 1e-5 \
