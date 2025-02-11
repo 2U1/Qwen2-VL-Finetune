@@ -200,7 +200,7 @@ class SupervisedDataset(Dataset):
             elif DEFAULT_VIDEO_TOKEN in user_input:
                 if "Qwen2.5" in self.model_id:
                     inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt', **video_kwargs)
-                    all_second_gird.append(inputs["second_per_grid_ts"])
+                    all_second_gird.extend(inputs["second_per_grid_ts"])
                 else:
                     inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
@@ -308,7 +308,7 @@ class DataCollatorForSupervisedDataset(object):
             data_dict[grid_key] = image_thw
 
         if len(batch_second_per_grid_ts) > 0:
-            data_dict["second_per_grid_ts"] = torch.stack(batch_second_per_grid_ts)
+            data_dict["second_per_grid_ts"] = batch_second_per_grid_ts
 
         return data_dict
     
