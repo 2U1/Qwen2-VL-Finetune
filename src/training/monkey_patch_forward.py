@@ -70,7 +70,7 @@ def qwen_2_mixed_modality_forward(
                 for i in range(is_dummy.shape[0]):
                     if is_dummy[i]:
                         # Setting dummy pixel_values for avoid deepspeed error.
-                        self.visual(torch.zeros(14903, 1176), gird_thw=torch.Tensor([[1, 98, 146]]))
+                        self.visual(torch.zeros(14903, 1176), grid_thw=torch.Tensor([[1, 98, 146]]))
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
             n_image_tokens = (input_ids == self.config.image_token_id).sum().item()
             n_image_features = image_embeds.shape[0]
@@ -219,7 +219,7 @@ def qwen2_5_mixed_modality_forward(
                 for i in range(is_dummy.shape[0]):
                     if is_dummy[i]:
                         # Setting dummy pixel_values for avoid deepspeed error.
-                        self.visual(torch.zeros(14903, 1176), gird_thw=torch.Tensor([[1, 98, 146]]))
+                        self.visual(torch.zeros(14903, 1176), grid_thw=torch.Tensor([[1, 98, 146]]))
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
             n_image_tokens = (input_ids == self.config.image_token_id).sum().item()
             n_image_features = image_embeds.shape[0]
