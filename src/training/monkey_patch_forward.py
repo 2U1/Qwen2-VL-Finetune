@@ -89,6 +89,11 @@ def qwen_2_mixed_modality_forward(
 
         if pixel_values_videos is not None:
             pixel_values_videos = pixel_values_videos.type(self.visual.get_dtype())
+            if is_dummy.any():
+                for i in range(is_dummy.shape[0]):
+                    if is_dummy[i]:
+                        # Setting dummy pixel_values for avoid deepspeed error.
+                        self.visual(torch.zeros(14903, 1176), grid_thw=torch.Tensor([[1, 98, 146]]))
             video_embeds = self.visual(pixel_values_videos, grid_thw=video_grid_thw)
             n_video_tokens = (input_ids == self.config.video_token_id).sum().item()
             n_video_features = video_embeds.shape[0]
@@ -238,6 +243,11 @@ def qwen2_5_mixed_modality_forward(
 
         if pixel_values_videos is not None:
             pixel_values_videos = pixel_values_videos.type(self.visual.dtype)
+            if is_dummy.any():
+                for i in range(is_dummy.shape[0]):
+                    if is_dummy[i]:
+                        # Setting dummy pixel_values for avoid deepspeed error.
+                        self.visual(torch.zeros(14903, 1176), grid_thw=torch.Tensor([[1, 98, 146]]))
             video_embeds = self.visual(pixel_values_videos, grid_thw=video_grid_thw)
             n_video_tokens = (input_ids == self.config.video_token_id).sum().item()
             n_video_features = video_embeds.shape[0]
