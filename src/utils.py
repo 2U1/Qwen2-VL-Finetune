@@ -17,8 +17,8 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
     kwargs = {"device_map": device_map}
     
     if device != "cuda":
-        kwargs['device_map'] = {"":device}
-    
+        kwargs['device_map'] = {"": device}
+
     if load_8bit:
         kwargs['load_in_8bit'] = True
     elif load_4bit:
@@ -36,6 +36,7 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
 
     if 'lora' in model_name.lower() and model_base is None:
         warnings.warn('There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument.')
+
     if 'lora' in model_name.lower() and model_base is not None:
         lora_cfg_pretrained = AutoConfig.from_pretrained(model_path)
         if hasattr(lora_cfg_pretrained, 'quantization_config'):
@@ -65,10 +66,12 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         model = model.merge_and_unload()
 
         print('Model Loaded!!!')
-
     else:
         processor = AutoProcessor.from_pretrained(model_base)
-        model = Qwen2VLForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
+        if "Qwen2.5" in model_base:
+            model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
+        else:
+            model = Qwen2VLForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
     return processor, model
 
