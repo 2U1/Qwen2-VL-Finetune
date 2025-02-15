@@ -10,6 +10,7 @@ from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non
 import pathlib
 from liger_kernel.transformers import apply_liger_kernel_to_qwen2_vl
 from monkey_patch_forward import replace_qwen2_5_with_mixed_modality_forward, replace_qwen_2_with_mixed_modality_forward
+import torch.nn as nn
 
 local_rank = None
 
@@ -40,6 +41,23 @@ def set_requires_grad(parameters, requires_grad):
 
 def configure_vision_tower(model, training_args, compute_dtype, device):
     vision_tower = model.visual
+    if not hasattr(vision_tower, "coord_pe_conv"):
+        vision_tower.add_module("coord_pe_conv", nn.Conv2d(
+            in_channels=64*3*2,
+            out_channels=1280,
+            kernel_size=(14, 14)
+        ))
+
+    if not hasattr(vision_tower, "coord_pe_mlp"):
+        coord_pe_mlp = nn.Sequential(
+            nn.Linear(5120, 5120, bias=True),
+            nn.GELU(),
+            nn.Linear(5120, 5120, bias=True),
+            nn.GELU(),
+            nn.Linear(5120, 2048, bias=True)
+        )
+        vision_tower.add_module("coord_pe_mlp", coord_pe_mlp)
+
     vision_tower.to(dtype=compute_dtype, device=device)
 
     vision_model_params = model.visual.parameters()
@@ -48,6 +66,13 @@ def configure_vision_tower(model, training_args, compute_dtype, device):
     # Handle merger specifically
     merger_params = model.visual.merger.parameters()
     set_requires_grad(merger_params, training_args.tune_merger)
+
+    coord_pe_conv_params = model.visual.coord_pe_conv.parameters()
+    set_requires_grad(coord_pe_conv_params, training_args.tune_coord_pe_conv)
+
+    coord_pe_mlp_params = model.visual.coord_pe_mlp.parameters()
+    set_requires_grad(coord_pe_mlp_params, training_args.tune_coord_pe_mlp)
+
 
 def configure_llm(model, training_args):
     lm_head = model.lm_head.parameters()

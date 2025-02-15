@@ -11,6 +11,7 @@ from PIL import Image
 
 from .params import DataArguments
 from .constants import *
+from .utils_3d import get_coord3d_info, coord3d_to_flat_patches
 
 def truncate_sequence(input_ids, labels, max_length, eos_token_id):
     if input_ids.size(0) > max_length:
@@ -102,6 +103,7 @@ class SupervisedDataset(Dataset):
             list_data_dict = json.load(open(data_path, "r"))
         else:
             list_data_dict = data_path
+        
 
         self.model_id = model_id
         self.processor = processor
@@ -136,12 +138,30 @@ class SupervisedDataset(Dataset):
                 image_files = [image_files]
 
             images = []
-            
+
             for image_file in image_files:
                 if not os.path.exists(image_file):
                     if not image_file.startswith("http"):
                         image_file = os.path.join(image_folder, image_file)
                 images.append(get_image_info(image_file, self.image_min_pixel, self.image_max_pixel))
+
+            depth_folder = image_folder.replace("image", "depth")
+            cam_params_folder = image_folder.replace("image", "camera_parameters")
+            if os.path.exists(depth_folder) and os.path.exists(cam_params_folder):
+                patch_size = processor.image_processor.patch_size
+                merge_size = processor.image_processor.merge_size
+                patch_size = processor.image_processor.patch_size
+                temporal_patch_size = processor.image_processor.temporal_patch_size
+                coord3d_list = []
+                for idx, image_file in enumerate(image_files):
+                    image_file = os.path.join(image_folder, image_file)
+                    base_name = os.path.splitext(os.path.basename(image_file))[0]
+                    depth_file = os.path.join(depth_folder, base_name + "_remove_edges.png")
+                    cam_params_file = os.path.join(cam_params_folder, base_name + ".json")
+                    coord3d = get_coord3d_info(image_file, depth_file, cam_params_file, get_image_info(image_file, self.image_min_pixel, self.image_max_pixel))
+                    coord3d = coord3d_to_flat_patches(coord3d, patch_size, merge_size, temporal_patch_size)
+                    coord3d = torch.tensor(coord3d)
+                    coord3d_list.append(coord3d)
 
         elif "video" in sources:
             is_dummy = False
@@ -250,6 +270,9 @@ class SupervisedDataset(Dataset):
             data_dict[pixel_key] = pixel_values
             data_dict[grid_key] = image_thw
 
+        if coord3d_list is not None:
+            data_dict["coord3d"] = torch.cat(coord3d_list, dim=0)
+
         if len(all_second_gird) > 0:
             second_gird = all_second_gird
             data_dict["second_per_grid_ts"] = second_gird
@@ -271,6 +294,7 @@ class DataCollatorForSupervisedDataset(object):
         batch_image_thw = []
         batch_dummy_flags = []
         batch_second_per_grid_ts = []
+        batch_coord3d = []
         
         for example in examples:
             keys = example.keys()
@@ -280,6 +304,9 @@ class DataCollatorForSupervisedDataset(object):
             elif "pixel_values" in keys:
                 batch_pixel_values.append(example["pixel_values"])
                 batch_image_thw.append(example["image_grid_thw"])
+            
+            if "coord3d" in keys:
+                batch_coord3d.append(example["coord3d"])
             
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
@@ -316,6 +343,10 @@ class DataCollatorForSupervisedDataset(object):
 
         if len(batch_second_per_grid_ts) > 0:
             data_dict["second_per_grid_ts"] = batch_second_per_grid_ts
+
+        if len(batch_coord3d) > 0:
+            coord3d = torch.cat(batch_coord3d, dim=0)
+            data_dict["coord3d"] = coord3d
 
         return data_dict
     

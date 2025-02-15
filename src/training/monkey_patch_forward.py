@@ -13,6 +13,10 @@ from liger_kernel.transformers.fused_linear_cross_entropy import (
 from liger_kernel.transformers.swiglu import LigerSwiGLUMLP
 from liger_kernel.transformers.rms_norm import LigerRMSNorm
 from liger_kernel.transformers.qwen2vl_mrope import liger_multimodal_rotary_pos_emb
+import torch.nn as nn
+
+
+from src.training.utils_3d import generate_3D_positional_encoding
 
 
 def apply_rotary_pos_emb_flashatt_fp32(tensor: torch.Tensor, freqs: torch.Tensor) -> torch.Tensor:
@@ -31,6 +35,8 @@ def replace_qwen2_5_with_mixed_modality_forward():
     transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2MLP = LigerSwiGLUMLP
     transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2RMSNorm = LigerRMSNorm
     transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.apply_multimodal_rotary_pos_emb = (liger_multimodal_rotary_pos_emb)
+
+
 
 def qwen_2_mixed_modality_forward(
     self,
@@ -208,6 +214,7 @@ def qwen2_5_mixed_modality_forward(
     cache_position: Optional[torch.LongTensor] = None,
     second_per_grid_ts: Optional[torch.Tensor] = None,
     is_dummy: Optional[torch.BoolTensor] = None,  # Added for mixed-modality training
+    coord3d: Optional[torch.Tensor] = None
 ) -> Union[Tuple, Qwen2_5_VLCausalLMOutputWithPast]:
 
     output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
@@ -226,6 +233,18 @@ def qwen2_5_mixed_modality_forward(
                         # Setting dummy pixel_values for avoid deepspeed error.
                         self.visual(torch.zeros(14903, 1176), grid_thw=torch.Tensor([[1, 98, 146]]))
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
+            
+            if coord3d is not None:
+                coord_pe, nan_mask = generate_3D_positional_encoding(coord3d, 64*3, image_grid_thw)
+                B = coord_pe.shape[0]
+                coord_pe = coord_pe.view(B, -1, 14, 14)
+                coord_pe = self.visual.coord_pe_conv(coord_pe)
+                coord_pe = coord_pe.view(-1, 1280 * 4)
+                coord_pe = self.visual.coord_pe_mlp(coord_pe)
+            
+            image_embeds = image_embeds + coord_pe
+
+
             n_image_tokens = (input_ids == self.config.image_token_id).sum().item()
             n_image_features = image_embeds.shape[0]
             if n_image_tokens != n_image_features:
@@ -240,6 +259,7 @@ def qwen2_5_mixed_modality_forward(
 
             image_embeds = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
             inputs_embeds = inputs_embeds.masked_scatter(image_mask, image_embeds)
+
 
         if pixel_values_videos is not None:
             pixel_values_videos = pixel_values_videos.type(self.visual.dtype)
