@@ -10,6 +10,7 @@ pip install torch==2.5.0 torchvision==0.20.0 torchaudio==2.5.0 --index-url https
 
 看你的版本，我用的118
 
+```
 pip install qwen-vl-utils
 pip install packaging
 pip install ninja
@@ -20,4 +21,5 @@ pip install tensorboardx
 pip install ujson
 pip install bitsandbytes
 pip install git+https://github.com/huggingface/transformers accelerate
+```
 
