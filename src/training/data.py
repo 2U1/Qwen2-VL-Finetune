@@ -138,6 +138,7 @@ class SupervisedDataset(Dataset):
                 image_files = [image_files]
 
             images = []
+            coord3d_list = []
 
             for image_file in image_files:
                 if not os.path.exists(image_file):
@@ -145,20 +146,24 @@ class SupervisedDataset(Dataset):
                         image_file = os.path.join(image_folder, image_file)
                 images.append(get_image_info(image_file, self.image_min_pixel, self.image_max_pixel))
 
-            depth_folder = image_folder.replace("image", "depth")
-            cam_params_folder = image_folder.replace("image", "camera_parameters")
-            if os.path.exists(depth_folder) and os.path.exists(cam_params_folder):
+            if "depth" in sources and "camera_parameters" in sources:
+                depth_files = sources["depth"]
+                cam_params_files = sources["camera_parameters"]
+                depth_folder = image_folder.replace("image", "depth")
+                cam_params_folder = image_folder.replace("image", "camera_parameters")
                 patch_size = processor.image_processor.patch_size
                 merge_size = processor.image_processor.merge_size
-                patch_size = processor.image_processor.patch_size
                 temporal_patch_size = processor.image_processor.temporal_patch_size
-                coord3d_list = []
-                for idx, image_file in enumerate(image_files):
+                for image_file in image_files:
                     image_file = os.path.join(image_folder, image_file)
-                    base_name = os.path.splitext(os.path.basename(image_file))[0]
-                    depth_file = os.path.join(depth_folder, base_name + "_remove_edges.png")
-                    cam_params_file = os.path.join(cam_params_folder, base_name + ".json")
-                    coord3d = get_coord3d_info(image_file, depth_file, cam_params_file, get_image_info(image_file, self.image_min_pixel, self.image_max_pixel))
+                    depth_file = os.path.join(depth_folder, depth_files)
+                    cam_params_file = os.path.join(cam_params_folder, cam_params_files)
+                    coord3d = get_coord3d_info(
+                        image_file,
+                        depth_file,
+                        cam_params_file,
+                        get_image_info(image_file, self.image_min_pixel, self.image_max_pixel)
+                    )
                     coord3d = coord3d_to_flat_patches(coord3d, patch_size, merge_size, temporal_patch_size)
                     coord3d = torch.tensor(coord3d)
                     coord3d_list.append(coord3d)
@@ -270,8 +275,10 @@ class SupervisedDataset(Dataset):
             data_dict[pixel_key] = pixel_values
             data_dict[grid_key] = image_thw
 
-        if coord3d_list is not None:
+        if "depth" in sources:
             data_dict["coord3d"] = torch.cat(coord3d_list, dim=0)
+        else:
+            data_dict["coord3d"] = torch.zeros_like(pixel_values)
 
         if len(all_second_gird) > 0:
             second_gird = all_second_gird
