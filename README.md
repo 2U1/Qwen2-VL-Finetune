@@ -82,7 +82,7 @@ pip install flash-attn==2.5.8 --no-build-isolation
 Please install the latest transformers from git to finetune Qwen2.5-VL
 
 ```
-pip install git+https://github.com/huggingface/transformers/commit/9d2056f12b66e64978f78a2dcb023f65b2be2108 accelerate
+pip install git+https://github.com/huggingface/transformers.git@9d2056f12b66e64978f78a2dcb023f65b2be2108 accelerate
 ```
 
 **Note:** You should install flash-attn after installing the other packages.
