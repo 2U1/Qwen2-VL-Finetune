@@ -17,9 +17,10 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
-- [2025/02/11] 🔥Support all kind of mixed-modality (Video + Image + Text)
-- [2025/02/05] Fixed code for properly use image
-- [2025/02/03] Support Liger-kernel for Qwen2.5-VL
+- [2025/02/18] 🔥Support mixed-modality dataset with zero3.
+- [2025/02/11] 🔥Support all kind of mixed-modality (Video + Image + Text).
+- [2025/02/05] Fixed code for properly use image.
+- [2025/02/03] Support Liger-kernel for Qwen2.5-VL.
 - [2025/02/03] 🔥Supports Qwen2.5-VL.
 - [2025/01/24] Add option for using DoRA.
 - [2025/01/24] Fix error in LoRA training.
@@ -33,6 +34,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 ## Table of Contents
 
 - [Fine-tuning Qwen2-VL Series](#fine-tuning-qwen2-vl-series)
+  - [Notification](#notification)
   - [Other projects](#other-projects)
   - [Update](#update)
   - [Table of Contents](#table-of-contents)
@@ -343,6 +345,7 @@ You can launch gradio based demo with this command. This can also set some other
 - [x] Handle mixed-modality data in dataset and collator
 - [x] Support Qwen2.5-VL
 - [x] Monkey-patch liger-kernel for Qwen2.5-VL
+- [ ] Benchmark torchtune to speed up and save memory when training.
 
 ## Known Issues
 
