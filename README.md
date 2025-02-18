@@ -282,7 +282,7 @@ bash scripts/finetune_video.sh
 **Note:** When training with video, it just as multi-image so you should adjust the `max_pixels` for maximum resolution and `fps` based on the available VRAM.
 
 If you run out of vram, you can use [zero3_offload](./scripts/zero3_offload.json) instead of [zero3](./scripts/zero3_offload.json).<br>
-You could use [zero2_offload](./scripts/zero2_offload.json) for mixed-modality data.
+You could use [zero2_offload](./scripts/zero2_offload.json) for a bit faster training.
 
 #### Merge LoRA Weights
 

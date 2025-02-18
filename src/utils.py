@@ -3,6 +3,7 @@ import torch
 from transformers import BitsAndBytesConfig, Qwen2VLForConditionalGeneration, AutoProcessor, AutoConfig, Qwen2_5_VLForConditionalGeneration
 import warnings
 import os
+import json
 
 def disable_torch_init():
     """
@@ -67,8 +68,16 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         print('Model Loaded!!!')
 
     else:
-        processor = AutoProcessor.from_pretrained(model_base)
-        model = Qwen2VLForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
+        with open(os.path.join(model_path, 'config.json'), 'r') as f:
+            config = json.load(f)
+
+        if "Qwen2.5" in config["_name_or_path"]:
+            processor = AutoProcessor.from_pretrained(model_path)
+            model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
+
+        else:
+            processor = AutoProcessor.from_pretrained(model_path)
+            model = Qwen2VLForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
     return processor, model
 
