@@ -193,7 +193,6 @@ Adding the new domain-specific data on top of the general data from open-source 
 ## Training
 
 **Note:** Deepspeed zero2 is faster than zero3, however it consumes more memory. Also, most of the time zero2 is more stable than zero3.<br>
-**IMPORTANT:** If your dataset are composed mixed-modality please use [zero2](./scripts/zero2.json)
 
 To run the training script, use the following command:
 

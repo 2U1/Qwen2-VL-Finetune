@@ -50,7 +50,6 @@ def qwen_2_mixed_modality_forward(
     video_grid_thw: Optional[torch.LongTensor] = None,
     rope_deltas: Optional[torch.LongTensor] = None,
     cache_position: Optional[torch.LongTensor] = None,
-    is_dummy: Optional[torch.BoolTensor] = None,  # Added for mixed-modality training
 ):
     
     output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
@@ -61,18 +60,13 @@ def qwen_2_mixed_modality_forward(
 
     if inputs_embeds is None:
         inputs_embeds = self.model.embed_tokens(input_ids)
+        if pixel_values is None and pixel_values_videos is None:
+            # Setting dummy pixel_values for avoid deepspeed error.
+            dummy_pixel = torch.zeros(14308, 1176).to(self.visual.get_device())
+            dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.get_device())
+            self.visual(dummy_pixel, grid_thw=dummy_grid)
         if pixel_values is not None:
             pixel_values = pixel_values.type(self.visual.get_dtype())
-            # This is a really nasty hack to avoid deepspeed error.
-            # It it consumes a lot of time for taking this.
-            # It need to be fixed in the future.
-            if is_dummy.any():
-                for i in range(is_dummy.shape[0]):
-                    if is_dummy[i]:
-                        # Setting dummy pixel_values for avoid deepspeed error.
-                        dummy_pixel = torch.zeros((14308, 1176), device=pixel_values.device, dtype=pixel_values.dtype)
-                        dummy_grid = torch.tensor([[1, 3]], device=pixel_values.device)
-                        self.visual(dummy_pixel, grid_thw=dummy_grid)
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
             n_image_tokens = (input_ids == self.config.image_token_id).sum().item()
             n_image_features = image_embeds.shape[0]
@@ -91,13 +85,6 @@ def qwen_2_mixed_modality_forward(
 
         if pixel_values_videos is not None:
             pixel_values_videos = pixel_values_videos.type(self.visual.get_dtype())
-            if is_dummy.any():
-                for i in range(is_dummy.shape[0]):
-                    if is_dummy[i]:
-                        # Setting dummy pixel_values for avoid deepspeed error.
-                        dummy_pixel = torch.zeros((14308, 1176), device=pixel_values.device, dtype=pixel_values.dtype)
-                        dummy_grid = torch.tensor([[1, 98, 146]], device=pixel_values.device)
-                        self.visual(dummy_pixel, grid_thw=dummy_grid)
             video_embeds = self.visual(pixel_values_videos, grid_thw=video_grid_thw)
             n_video_tokens = (input_ids == self.config.video_token_id).sum().item()
             n_video_features = video_embeds.shape[0]
@@ -211,7 +198,6 @@ def qwen2_5_mixed_modality_forward(
     rope_deltas: Optional[torch.LongTensor] = None,
     cache_position: Optional[torch.LongTensor] = None,
     second_per_grid_ts: Optional[torch.Tensor] = None,
-    is_dummy: Optional[torch.BoolTensor] = None,  # Added for mixed-modality training
 ) -> Union[Tuple, Qwen2_5_VLCausalLMOutputWithPast]:
 
     output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
@@ -222,15 +208,13 @@ def qwen2_5_mixed_modality_forward(
 
     if inputs_embeds is None:
         inputs_embeds = self.model.embed_tokens(input_ids)
+        if pixel_values is None and pixel_values_videos is None:
+            # Setting dummy pixel_values for avoid deepspeed error.
+            dummy_pixel = torch.zeros(14308, 1176).to(self.visual.device)
+            dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.device)
+            self.visual(dummy_pixel, grid_thw=dummy_grid)
         if pixel_values is not None:
             pixel_values = pixel_values.type(self.visual.dtype)
-            if is_dummy.any():
-                for i in range(is_dummy.shape[0]):
-                    if is_dummy[i]:
-                        # Setting dummy pixel_values for avoid deepspeed error.
-                        dummy_pixel = torch.zeros((14308, 1176), device=pixel_values.device, dtype=pixel_values.dtype)
-                        dummy_grid = torch.tensor([[1, 98, 146]], device=pixel_values.device)
-                        self.visual(dummy_pixel, grid_thw=dummy_grid)
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
             n_image_tokens = (input_ids == self.config.image_token_id).sum().item()
             n_image_features = image_embeds.shape[0]
@@ -249,13 +233,6 @@ def qwen2_5_mixed_modality_forward(
 
         if pixel_values_videos is not None:
             pixel_values_videos = pixel_values_videos.type(self.visual.dtype)
-            if is_dummy.any():
-                for i in range(is_dummy.shape[0]):
-                    if is_dummy[i]:
-                        # Setting dummy pixel_values for avoid deepspeed error.
-                        dummy_pixel = torch.zeros((14308, 1176), device=pixel_values.device, dtype=pixel_values.dtype)
-                        dummy_grid = torch.tensor([[1, 98, 146]], device=pixel_values.device)
-                        self.visual(dummy_pixel, grid_thw=dummy_grid)
             video_embeds = self.visual(pixel_values_videos, grid_thw=video_grid_thw)
             n_video_tokens = (input_ids == self.config.video_token_id).sum().item()
             n_video_features = video_embeds.shape[0]

@@ -124,7 +124,6 @@ class SupervisedDataset(Dataset):
 
         processor = self.processor
         if "image" in sources:
-            is_dummy = False
             videos = None
             grid_key = "image_grid_thw"
             pixel_key = "pixel_values"
@@ -144,7 +143,6 @@ class SupervisedDataset(Dataset):
                 images.append(get_image_info(image_file, self.image_min_pixel, self.image_max_pixel))
 
         elif "video" in sources:
-            is_dummy = False
             is_video = True
             images=None
             grid_key = "video_grid_thw"
@@ -164,7 +162,6 @@ class SupervisedDataset(Dataset):
                 video_input, video_kwargs = get_video_info(video_file, self.video_min_pixel, self.video_max_pixel, self.data_args.fps)
                 videos.append(video_input)
         else:
-            is_dummy=True
             grid_key = None
             pixel_key = None
             images=None
@@ -241,7 +238,6 @@ class SupervisedDataset(Dataset):
             input_ids=input_ids,
             attention_mask=attention_mask,
             labels=labels,
-            is_dummy=is_dummy,
         )
 
         if pixel_key and grid_key:
@@ -269,7 +265,6 @@ class DataCollatorForSupervisedDataset(object):
         batch_pixel_video_values = []
         batch_video_thw = []
         batch_image_thw = []
-        batch_dummy_flags = []
         batch_second_per_grid_ts = []
         
         for example in examples:
@@ -283,7 +278,6 @@ class DataCollatorForSupervisedDataset(object):
             
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
-            batch_dummy_flags.append(example["is_dummy"])
 
             if "second_per_grid_ts" in keys:
                 batch_second_per_grid_ts.extend(example["second_per_grid_ts"])
@@ -299,7 +293,6 @@ class DataCollatorForSupervisedDataset(object):
             'input_ids': input_ids,
             'labels': labels,
             'attention_mask': attention_mask,
-            'is_dummy': torch.tensor(batch_dummy_flags, dtype=torch.bool)
         }
 
         if len(batch_pixel_values) > 0:
