@@ -194,7 +194,8 @@ Adding the new domain-specific data on top of the general data from open-source 
 
 ## Training
 
-**Note:** Deepspeed zero2 is faster than zero3, however it consumes more memory. Also, most of the time zero2 is more stable than zero3.<br>
+**Note:** Deepspeed zero2 is faster than zero3, however it consumes more memory. Also, most of the time zero2 is more stable than zero3.<br><br>
+**Tip:** You could use `adamw_bnb_8bit` for optimizer to save memory.
 
 To run the training script, use the following command:
 
