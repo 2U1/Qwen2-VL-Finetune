@@ -60,11 +60,14 @@ def qwen_2_mixed_modality_forward(
 
     if inputs_embeds is None:
         inputs_embeds = self.model.embed_tokens(input_ids)
-        if pixel_values is None and pixel_values_videos is None:
-            # Setting dummy pixel_values for avoid deepspeed error.
-            dummy_pixel = torch.zeros(14308, 1176).to(self.visual.get_device())
-            dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.get_device())
-            self.visual(dummy_pixel, grid_thw=dummy_grid)
+
+        # Setting dummies twice that if to avdoid deepspeed error when the dataset has 
+        # image+video the cuda graph have two nodes for passing through the visual model.
+        # So in all case we need to pass thorugh the visual model twice.
+
+        dummy_pixel = torch.zeros(14308, 1176).to(self.visual.get_device())
+        dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.get_device())
+
         if pixel_values is not None:
             pixel_values = pixel_values.type(self.visual.get_dtype())
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
@@ -82,6 +85,8 @@ def qwen_2_mixed_modality_forward(
             )
             image_embeds = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
             inputs_embeds = inputs_embeds.masked_scatter(image_mask, image_embeds)
+        else:
+            self.visual(dummy_pixel, grid_thw=dummy_grid)
 
         if pixel_values_videos is not None:
             pixel_values_videos = pixel_values_videos.type(self.visual.get_dtype())
@@ -100,6 +105,9 @@ def qwen_2_mixed_modality_forward(
             )
             video_embeds = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
             inputs_embeds = inputs_embeds.masked_scatter(video_mask, video_embeds)
+        else:
+            self.visual(dummy_pixel, grid_thw=dummy_grid)
+
 
         if attention_mask is not None:
             attention_mask = attention_mask.to(inputs_embeds.device)
@@ -206,13 +214,16 @@ def qwen2_5_mixed_modality_forward(
     )
     return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
+    dummy_pixel = torch.zeros(14308, 1176).to(self.visual.device)
+    dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.device)
+
     if inputs_embeds is None:
         inputs_embeds = self.model.embed_tokens(input_ids)
-        if pixel_values is None and pixel_values_videos is None:
-            # Setting dummy pixel_values for avoid deepspeed error.
-            dummy_pixel = torch.zeros(14308, 1176).to(self.visual.device)
-            dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.device)
-            self.visual(dummy_pixel, grid_thw=dummy_grid)
+
+        # Setting dummies twice that if to avdoid deepspeed error when the dataset has 
+        # image+video the cuda graph have two nodes for passing through the visual model.
+        # So in all case we need to pass thorugh the visual model twice.
+            
         if pixel_values is not None:
             pixel_values = pixel_values.type(self.visual.dtype)
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
@@ -230,6 +241,9 @@ def qwen2_5_mixed_modality_forward(
 
             image_embeds = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
             inputs_embeds = inputs_embeds.masked_scatter(image_mask, image_embeds)
+        else:
+            # Setting dummy pixel_values for avoid deepspeed error.
+            self.visual(dummy_pixel, grid_thw=dummy_grid)
 
         if pixel_values_videos is not None:
             pixel_values_videos = pixel_values_videos.type(self.visual.dtype)
@@ -248,6 +262,10 @@ def qwen2_5_mixed_modality_forward(
 
             video_embeds = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
             inputs_embeds = inputs_embeds.masked_scatter(video_mask, video_embeds)
+
+        else:
+            # Setting dummy pixel_values for avoid deepspeed error.
+            self.visual(dummy_pixel, grid_thw=dummy_grid)
 
         if attention_mask is not None:
             attention_mask = attention_mask.to(inputs_embeds.device)
