@@ -61,12 +61,13 @@ def qwen_2_mixed_modality_forward(
     if inputs_embeds is None:
         inputs_embeds = self.model.embed_tokens(input_ids)
 
-        # Setting dummies twice that if to avdoid deepspeed error when the dataset has 
-        # image+video the cuda graph have two nodes for passing through the visual model.
-        # So in all case we need to pass thorugh the visual model twice.
-
+        # Create dummy pixel_values and grid_thw for avoiding deepspeed error.
         dummy_pixel = torch.zeros(14308, 1176).to(self.visual.get_device())
         dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.get_device())
+
+        # For batches containing both images and videos, the CUDA graph creates two nodes
+        # for processing the visual model. To avoid a DeepSpeed error, we must pass through the
+        # visual model twice in every case.
 
         if pixel_values is not None:
             pixel_values = pixel_values.type(self.visual.get_dtype())
@@ -214,19 +215,16 @@ def qwen2_5_mixed_modality_forward(
     )
     return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-
-    # Create dummy pixel_values and grid_thw for avoiding deepspeed error.
-
-    dummy_pixel = torch.zeros(14308, 1176).to(self.visual.device)
-    dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.device)
-
     if inputs_embeds is None:
         inputs_embeds = self.model.embed_tokens(input_ids)
+        
+        # Create dummy pixel_values and grid_thw for avoiding deepspeed error.
+        dummy_pixel = torch.zeros(14308, 1176).to(self.visual.device)
+        dummy_grid = torch.tensor([[1, 98, 146]]).to(self.visual.device)
         
         # For batches containing both images and videos, the CUDA graph creates two nodes
         # for processing the visual model. To avoid a DeepSpeed error, we must pass through the
         # visual model twice in every case.
-            
         if pixel_values is not None:
             pixel_values = pixel_values.type(self.visual.dtype)
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
