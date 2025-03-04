@@ -17,6 +17,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/03/04] Add Option for using liger kernel.
 - [2025/02/18] 🔥Support mixed-modality dataset with zero3.
 - [2025/02/05] Fixed code for properly use image.
 - [2025/02/03] Support Liger-kernel for Qwen2.5-VL.
@@ -184,8 +185,6 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 ]
 ```
 
-**Note:** Qwen2-VL uses a video as a sequential of images.
-
 </details>
 <br><br>
 
@@ -216,6 +215,7 @@ You can even use offloading with fp8 training. For detailed config, you could ch
 
 ### Finetune with LoRA
 
+**Note:** Liger-kernel won't work with QLoRA. You need to disable to use QLoRA.<br>
 If you want to train only the language model with LoRA and perform full training for the vision model:
 
 ```bash
@@ -237,6 +237,7 @@ bash scripts/finetune_lora_vision.sh
 - `--data_path` (str): Path to the LLaVA formatted training data (a JSON file). **(Required)**
 - `--image_folder` (str): Path to the images folder as referenced in the LLaVA formatted training data. **(Required)**
 - `--model_id` (str): Path to the Qwen2-VL model. **(Required)**
+- `--use_liger` (bool): Option for using liger kernel to save memory.
 - `--output_dir` (str): Output directory for model checkpoints
 - `--num_train_epochs` (int): Number of training epochs (default: 1).
 - `--per_device_train_batch_size` (int): Training batch size per GPU per forwarding step.

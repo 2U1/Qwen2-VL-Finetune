@@ -16,6 +16,7 @@ GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
 # If you want to tune the `embed_token` with LoRA, You need to tune `lm_head` together
 
 deepspeed src/training/train.py \
+    --use_liger True \
     --lora_enable True \
     --use_dora False \
     --lora_namespan_exclude "['lm_head', 'embed_tokens']" \

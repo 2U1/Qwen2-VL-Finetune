@@ -67,12 +67,14 @@ def train():
     
     if "Qwen2.5" in model_args.model_id:
         # Liger-kernel for Qwen2.5 is not supported yet.
-        replace_qwen2_5_with_mixed_modality_forward()
+        replace_qwen2_5_with_mixed_modality_forward(use_liger=training_args.use_liger)
     else:
         # It monkey patches the forward to handle mixed modality inputs.
-        replace_qwen_2_with_mixed_modality_forward()
+        use_liger = training_args.use_liger
+        replace_qwen_2_with_mixed_modality_forward(use_liger=use_liger)
         # This is becuase mixed-modality training monkey-patches the model forward method.
-        apply_liger_kernel_to_qwen2_vl(fused_linear_cross_entropy=False)
+        if use_liger:
+            apply_liger_kernel_to_qwen2_vl(fused_linear_cross_entropy=False)
     
 
     if training_args.lora_enable and not training_args.freeze_llm:
