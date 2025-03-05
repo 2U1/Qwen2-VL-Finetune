@@ -81,7 +81,8 @@ pip install qwen-vl-utils
 pip install flash-attn==2.5.8 --no-build-isolation
 ```
 
-Please install the latest transformers from git to finetune Qwen2.5-VL
+Please install the transformers from git to finetune Qwen2.5-VL.<br>
+This code is based on the commit version below, **not the latest version**.
 
 ```
 pip install git+https://github.com/huggingface/transformers.git@9d2056f12b66e64978f78a2dcb023f65b2be2108 accelerate
@@ -346,6 +347,7 @@ You can launch gradio based demo with this command. This can also set some other
 - [x] Handle mixed-modality data in dataset and collator
 - [x] Support Qwen2.5-VL
 - [x] Monkey-patch liger-kernel for Qwen2.5-VL
+- [ ] Update the code base to the latest transformers.
 - [ ] Benchmark torchtune to speed up and save memory when training.
 
 ## Known Issues
