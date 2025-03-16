@@ -78,7 +78,7 @@ Install the required packages using `environment.yaml`.
 conda env create -f environment.yaml
 conda activate qwen2
 pip install qwen-vl-utils
-pip install flash-attn==2.5.8 --no-build-isolation
+pip install flash-attn
 ```
 
 Please install the transformers from git to finetune Qwen2.5-VL.<br>
