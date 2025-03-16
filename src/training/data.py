@@ -178,7 +178,7 @@ class SupervisedDataset(Dataset):
 
         # Qwen2-VL uses a default system message so I've added this.
         if len(SYSTEM_MESSAGE) > 0:
-            system_message = f"{DEFAULT_IM_START_TOKEN}system\n{SYSTEM_MESSAGE}\n{DEFAULT_IM_END_TOKEN}\n"
+            system_message = f"{DEFAULT_IM_START_TOKEN}system\n{SYSTEM_MESSAGE}{DEFAULT_IM_END_TOKEN}\n"
             system_message_input_ids = processor.tokenizer(system_message, add_special_tokens=False, return_tensors='pt')['input_ids']
             system_labels = torch.full_like(system_message_input_ids, IGNORE_INDEX) 
             
@@ -189,8 +189,8 @@ class SupervisedDataset(Dataset):
             user_input = sources[j]
             gpt_response = sources[j + 1]
 
-            user_input = f"{DEFAULT_IM_START_TOKEN}{user_input['role']}\n{user_input['content']}\n{DEFAULT_IM_END_TOKEN}\n{DEFAULT_IM_START_TOKEN}{gpt_response['role']}\n"
-            gpt_response = f"{gpt_response['content']}\n{DEFAULT_IM_END_TOKEN}\n"
+            user_input = f"{DEFAULT_IM_START_TOKEN}{user_input['role']}\n{user_input['content']}{DEFAULT_IM_END_TOKEN}\n{DEFAULT_IM_START_TOKEN}{gpt_response['role']}\n"
+            gpt_response = f"{gpt_response['content']}{DEFAULT_IM_END_TOKEN}\n"
             
             if DEFAULT_IMAGE_TOKEN in user_input:
                 inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
