@@ -2,11 +2,6 @@
 
 This repository contains a script for training [Qwen2-VL](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct) and [Qwen2.5-VL](https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct) with only using HuggingFace and [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
 
-## Notification
-
-**Currently Qwen2.5-VL has a bug when using Flash-attention2. ~~You need to disable to train the model.~~**<br>
-**I made a quick fix monkey-patching code for it.**
-
 ## Other projects
 
 **[[Phi3-Vision Finetuning]](https://github.com/2U1/Phi3-Vision-Finetune)**<br>
@@ -78,14 +73,7 @@ Install the required packages using `environment.yaml`.
 conda env create -f environment.yaml
 conda activate qwen2
 pip install qwen-vl-utils
-pip install flash-attn
-```
-
-Please install the transformers from git to finetune Qwen2.5-VL.<br>
-This code is based on the commit version below, **not the latest version**.
-
-```
-pip install git+https://github.com/huggingface/transformers.git@9d2056f12b66e64978f78a2dcb023f65b2be2108 accelerate
+pip install flash-attn --no-build-isolation
 ```
 
 **Note:** You should install flash-attn after installing the other packages.

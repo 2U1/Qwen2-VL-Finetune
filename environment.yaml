@@ -42,7 +42,7 @@ dependencies:
       - debugpy==1.6.7
       - decorator==5.1.1
       - decord==0.6.0
-      - deepspeed==0.15.4
+      - deepspeed==0.16.4
       - dill==0.3.8
       - dnspython==2.7.0
       - docker-pycreds==0.4.0
@@ -148,7 +148,7 @@ dependencies:
       - tqdm==4.66.4
       - traitlets==5.14.2
       - triton==3.1.0
-      - transformers==4.48.0
+      - transformers==4.50.1
       - trl==0.8.6
       - typing-extensions==4.9.0
       - tyro==0.8.4
