@@ -8,7 +8,8 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 **[[Llama3.2-Vision Finetuning]](https://github.com/2U1/Llama3.2-Vision-Ft)**<br>
 **[[Molmo Finetune]](https://github.com/2U1/Molmo-Finetune)**<br>
 **[[Pixtral Finetune]](https://github.com/2U1/Pixtral-Finetune)**<br>
-**[[SmolVLM Finetune]](https://github.com/2U1/SmolVLM-Finetune)**
+**[[SmolVLM Finetune]](https://github.com/2U1/SmolVLM-Finetune)**<br>
+**[[Gemma3 Finetune]](https://github.com/2U1/Gemma3-Finetune)**
 
 ## Update
 
@@ -29,7 +30,6 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 ## Table of Contents
 
 - [Fine-tuning Qwen2-VL Series](#fine-tuning-qwen2-vl-series)
-  - [Notification](#notification)
   - [Other projects](#other-projects)
   - [Update](#update)
   - [Table of Contents](#table-of-contents)
@@ -335,8 +335,9 @@ You can launch gradio based demo with this command. This can also set some other
 - [x] Handle mixed-modality data in dataset and collator
 - [x] Support Qwen2.5-VL
 - [x] Monkey-patch liger-kernel for Qwen2.5-VL
-- [ ] Update the code base to the latest transformers.
-- [ ] Benchmark torchtune to speed up and save memory when training.
+- [x] Update the code base to the latest transformers.
+- [ ] Add DPO
+- [ ] Add GRPO
 
 ## Known Issues
 
