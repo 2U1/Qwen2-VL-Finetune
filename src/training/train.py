@@ -8,7 +8,7 @@ from training.data import make_supervised_data_module
 from training.params import DataArguments, ModelArguments, TrainingArguments
 from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib
-from liger_kernel.transformers import apply_liger_kernel_to_qwen2_vl
+from liger_kernel.transformers import apply_liger_kernel_to_qwen2_vl, apply_liger_kernel_to_qwen2_5_vl
 from monkey_patch_forward import replace_qwen2_5_with_mixed_modality_forward, replace_qwen_2_with_mixed_modality_forward
 
 local_rank = None
@@ -64,13 +64,15 @@ def train():
         (ModelArguments, DataArguments, TrainingArguments))
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    
+    use_liger = training_args.use_liger
     if "Qwen2.5" in model_args.model_id:
-        # Liger-kernel for Qwen2.5 is not supported yet.
-        replace_qwen2_5_with_mixed_modality_forward(use_liger=training_args.use_liger)
+        # It monkey patches the forward to handle mixed modality inputs.
+        replace_qwen2_5_with_mixed_modality_forward(use_liger=use_liger)
+        # This is becuase mixed-modality training monkey-patches the model forward method.
+        if use_liger:
+            apply_liger_kernel_to_qwen2_5_vl(fused_linear_cross_entropy=False)
     else:
         # It monkey patches the forward to handle mixed modality inputs.
-        use_liger = training_args.use_liger
         replace_qwen_2_with_mixed_modality_forward(use_liger=use_liger)
         # This is becuase mixed-modality training monkey-patches the model forward method.
         if use_liger:

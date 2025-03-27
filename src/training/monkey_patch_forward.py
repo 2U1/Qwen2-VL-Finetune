@@ -6,21 +6,9 @@ from torch.nn import CrossEntropyLoss
 import numpy as np
 import transformers.models.qwen2_vl.modeling_qwen2_vl
 import transformers.models.qwen2_5_vl.modeling_qwen2_5_vl
-from flash_attn.layers.rotary import apply_rotary_emb
 from liger_kernel.transformers.fused_linear_cross_entropy import (
     LigerFusedLinearCrossEntropyLoss
 )
-from liger_kernel.transformers.swiglu import LigerSwiGLUMLP
-from liger_kernel.transformers.rms_norm import LigerRMSNorm
-from liger_kernel.transformers.qwen2vl_mrope import liger_multimodal_rotary_pos_emb
-
-
-def apply_rotary_pos_emb_flashatt_fp32(tensor: torch.Tensor, freqs: torch.Tensor) -> torch.Tensor:
-    tensor_ = tensor.float()
-    cos = freqs.cos().float()
-    sin = freqs.sin().float()
-    output = apply_rotary_emb(tensor_, cos, sin).type_as(tensor)
-    return output
 
 def replace_qwen_2_with_mixed_modality_forward(use_liger=True):
     if use_liger:
@@ -31,13 +19,8 @@ def replace_qwen_2_with_mixed_modality_forward(use_liger=True):
 def replace_qwen2_5_with_mixed_modality_forward(use_liger=True):
     if use_liger:
         transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2_5_VLForConditionalGeneration.forward = qwen2_5_mixed_modality_forward_with_flce
-        transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.apply_rotary_pos_emb_flashatt = (apply_rotary_pos_emb_flashatt_fp32)
-        transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2MLP = LigerSwiGLUMLP
-        transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2RMSNorm = LigerRMSNorm
-        transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.apply_multimodal_rotary_pos_emb = (liger_multimodal_rotary_pos_emb)
     else:
         transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2_5_VLForConditionalGeneration.forward = qwen2_5_mixed_modality_forward
-        transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.apply_rotary_pos_emb_flashatt = (apply_rotary_pos_emb_flashatt_fp32)
 
 def qwen_2_mixed_modality_forward_with_flce(
     self,
