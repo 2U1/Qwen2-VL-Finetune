@@ -34,7 +34,9 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
   - [Update](#update)
   - [Table of Contents](#table-of-contents)
   - [Supported Features](#supported-features)
+  - [Docker](#docker)
   - [Installation](#installation)
+    - [Environments](#environments)
     - [Using `environment.yaml`](#using-environmentyaml)
   - [Dataset Preparation](#dataset-preparation)
   - [Training](#training)
@@ -63,7 +65,22 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 - Multi-image and video training
 - Training optimized with liger kernel
 
+## Docker
+
+To simplfy the setting process for training, you could use the provided pre-build environments.
+
+```
+docker pull john119/vlm:v1
+docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john119/vlm:v1 /bin/bash
+```
+
 ## Installation
+
+### Environments
+
+- Ubuntu 22.04
+- Nvidia-Driver 550.120
+- Cuda version 12.4
 
 Install the required packages using `environment.yaml`.
 
@@ -244,6 +261,10 @@ bash scripts/finetune_lora_vision.sh
 - `--image_max_pixles` (int): Option for maximum maxmimum tokens for image.
 - `--video_min_pixels` (int): Option for minimum input tokens for video.
 - `--video_max_pixles` (int): Option for maximum maxmimum tokens for video.
+- `--image_resized_width` (int): Option for setting the width of the input image.
+- `--image_resized_height` (int): Option for setting the height of the input image.
+- `--video_resized_width` (int): Option for setting the width of the input video.
+- `--video_resized_height` (int): Option for setting the height of the input video.
 - `--lora_enable` (bool): Option for using LoRA.
 - `--vision_lora` (bool): Option for including `vision_tower` in LoRA module. `lora_enable` should be `True` to use this option.
 - `--use_dora` (bool): Option for using DoRA instead of LoRA. `lora_enable` should be `True` to use this option.
@@ -292,11 +313,20 @@ The model splits the image into `token * 28 * 28` so you could just change the t
 For example:
 
 ```
-image_min_pixels = 256 * 28 * 28
-image_max_pixels = 1280 * 28 * 28
-video_min_pixels = 128 * 28 * 28
-video_max_pixels = 768 * 28 * 28
+--image_min_pixels $((256 * 28 * 28))
+--image_max_pixels $((1280 * 28 * 28))
+--video_min_pixels $((128 * 28 * 28))
+--video_max_pixels $((768 * 28 * 28))
 ```
+
+Besides you could directly set the image/video height and width to control over the memory.
+
+```
+--resized_height 448
+--resized_width 448
+```
+
+These values will be rounded to the nearest multiple of 28.
 
 #### Issue for libcudnn error
 

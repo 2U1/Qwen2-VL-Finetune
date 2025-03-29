@@ -68,4 +68,8 @@ class DataArguments:
     image_max_pixels: Optional[int] = field(default=12845056)
     video_min_pixels: Optional[int] = field(default=100352)
     video_max_pixels: Optional[int] = field(default=602112)
+    image_resized_width: int = field(default=None)
+    image_resized_height: int = field(default=None)
+    video_resized_width: int = field(default=None)
+    video_resized_height: int = field(default=None)
     fps: float = 1.0

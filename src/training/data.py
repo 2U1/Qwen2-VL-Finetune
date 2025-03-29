@@ -43,21 +43,25 @@ def pad_sequence(sequences, padding_side='right', padding_value=0):
             output.data[i, -length:] = seq
     return output
 
-def get_image_info(image_path, min_pixel, max_pixel):
+def get_image_info(image_path, min_pixel, max_pixel, width, height):
     # Using this because of process_vision_info function
-    # Need to fix this in the future    
+    # Need to fix this in the future
+
+
+    content = {
+        "type": "image", 
+        "image": image_path,
+        "min_pixel": min_pixel,
+        "max_pixel": max_pixel
+    }
+
+    if width is not None and height is not None:
+        content["resized_width"] = width
+        content["resized_height"] = height
     
     messages = [
         {"role": "user", 
-         "content": [
-             {
-                "type": "image", 
-                "image": image_path,
-                "min_pixel": min_pixel,
-                "max_pixel": max_pixel
-
-            }
-            ]
+         "content": [content]
         }
     ]
 
@@ -65,21 +69,24 @@ def get_image_info(image_path, min_pixel, max_pixel):
 
     return image_input[0]
 
-def get_video_info(video_path, min_pixels, max_pixels, fps):
+def get_video_info(video_path, min_pixels, max_pixels, width, height, fps):
     # Using this because of process_vision_info function
     # Need to fix this in the future
+    content = {
+        "type": "video", 
+        "video": video_path,
+        "min_pixels": min_pixels,
+        "max_pixels": max_pixels,
+        "fps": fps
+    }
 
+    if width is not None and height is not None:
+        content["resized_width"] = width
+        content["resized_height"] = height
+    
     messages = [
         {"role": "user", 
-         "content": [
-             {
-                "type": "video", 
-                "video": video_path,
-                "min_pixels": min_pixels,
-                "max_pixels": max_pixels,
-                "fps": fps
-            }
-            ]
+         "content": [content]
         }
     ]
 
@@ -113,6 +120,10 @@ class SupervisedDataset(Dataset):
         self.image_max_pixel = data_args.image_max_pixels
         self.video_min_pixel = data_args.video_min_pixels
         self.video_max_pixel = data_args.video_max_pixels
+        self.image_resized_w = data_args.image_resized_width
+        self.image_resized_h = data_args.image_resized_height
+        self.video_resized_w = data_args.video_resized_width
+        self.video_resized_h = data_args.video_resized_height
         self.fps = data_args.fps
 
     def __len__(self):
@@ -141,7 +152,7 @@ class SupervisedDataset(Dataset):
                 if not os.path.exists(image_file):
                     if not image_file.startswith("http"):
                         image_file = os.path.join(image_folder, image_file)
-                images.append(get_image_info(image_file, self.image_min_pixel, self.image_max_pixel))
+                images.append(get_image_info(image_file, self.image_min_pixel, self.image_max_pixel, self.image_resized_w, self.image_resized_h))
 
         elif "video" in sources:
             is_video = True
@@ -160,7 +171,7 @@ class SupervisedDataset(Dataset):
                 if not os.path.exists(video_file):
                     if not video_file.startswith("http"):
                         video_file = os.path.join(video_folder, video_file)
-                video_input, video_kwargs = get_video_info(video_file, self.video_min_pixel, self.video_max_pixel, self.data_args.fps)
+                video_input, video_kwargs = get_video_info(video_file, self.video_min_pixel, self.video_max_pixel, self.video_resized_w, self.video_resized_h, self.data_args.fps)
                 videos.append(video_input)
         else:
             grid_key = None
