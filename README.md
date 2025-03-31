@@ -68,7 +68,8 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 ## Docker
 
 To simplfy the setting process for training, you could use the provided pre-build environments.<br>
-The settings are done in the conda env named `train`.
+The settings are done in the conda env named `train`.<br><br>
+You could find more information about the image [here](https://hub.docker.com/repository/docker/john119/vlm/general).
 
 ```
 docker pull john119/vlm:v1
