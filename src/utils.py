@@ -71,7 +71,7 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         with open(os.path.join(model_path, 'config.json'), 'r') as f:
             config = json.load(f)
 
-        if "Qwen2.5" in config["_name_or_path"]:
+        if "Qwen2_5" in config["architectures"]:
             processor = AutoProcessor.from_pretrained(model_path)
             model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
