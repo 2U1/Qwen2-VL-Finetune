@@ -51,8 +51,8 @@ def get_image_info(image_path, min_pixel, max_pixel, width, height):
     content = {
         "type": "image", 
         "image": image_path,
-        "min_pixel": min_pixel,
-        "max_pixel": max_pixel
+        "min_pixels": min_pixel,
+        "max_pixels": max_pixel
     }
 
     if width is not None and height is not None:
