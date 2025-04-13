@@ -204,17 +204,17 @@ class SupervisedDataset(Dataset):
             gpt_response = f"{gpt_response['content']}{DEFAULT_IM_END_TOKEN}\n"
             
             if DEFAULT_IMAGE_TOKEN in user_input:
-                inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
+                inputs = processor(text=[user_input], images=images, videos=videos, padding=False, do_resize=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
                 all_pixel_values.append(inputs[pixel_key])
                 all_image_grid_thw.append(inputs[grid_key])
             
             elif DEFAULT_VIDEO_TOKEN in user_input:
                 if "Qwen2.5" in self.model_id:
-                    inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt', **video_kwargs)
+                    inputs = processor(text=[user_input], images=images, videos=videos, padding=False, do_resize=False, return_tensors='pt', **video_kwargs)
                     all_second_gird.extend(inputs["second_per_grid_ts"])
                 else:
-                    inputs = processor(text=[user_input], images=images, videos=videos, padding=False, return_tensors='pt')
+                    inputs = processor(text=[user_input], images=images, videos=videos, padding=False, do_resize=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
                 all_pixel_values.append(inputs[pixel_key])
                 all_image_grid_thw.append(inputs[grid_key])
