@@ -38,7 +38,7 @@ dependencies:
       - charset-normalizer==2.0.4
       - click==8.1.7
       - comm==0.2.2
-      - datasets==2.19.2
+      - datasets==3.5.0
       - debugpy==1.6.7
       - decorator==5.1.1
       - decord==0.6.0
@@ -149,7 +149,7 @@ dependencies:
       - traitlets==5.14.2
       - triton==3.1.0
       - transformers==4.50.1
-      - trl==0.8.6
+      - trl==0.16.0
       - typing-extensions==4.9.0
       - tyro==0.8.4
       - tzdata==2024.1
