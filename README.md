@@ -406,7 +406,7 @@ You can launch gradio based demo with this command. This can also set some other
 - [x] Support Qwen2.5-VL
 - [x] Monkey-patch liger-kernel for Qwen2.5-VL
 - [x] Update the code base to the latest transformers.
-- [ ] Add DPO
+- [x] Add DPO
 - [ ] Add GRPO
 
 ## Known Issues
