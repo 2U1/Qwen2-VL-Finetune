@@ -19,7 +19,7 @@ class TrainingArguments(TrainingArguments):
 
     freeze_vision_tower: bool = field(default=False)
     freeze_llm: bool = field(default=False)
-    tune_merger: bool = field(default=False)
+    freeze_merger: bool = field(default=False)
     disable_flash_attn2: bool = field(default=False)
 
     max_seq_length: int = field(

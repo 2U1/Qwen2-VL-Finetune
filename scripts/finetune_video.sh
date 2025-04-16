@@ -23,7 +23,7 @@ deepspeed src/training/train.py \
     --remove_unused_columns False \
     --freeze_vision_tower False \
     --freeze_llm False \
-    --tune_merger True \
+    --freeze_merger False \
     --bf16 True \
     --fp16 False \
     --disable_flash_attn2 False \

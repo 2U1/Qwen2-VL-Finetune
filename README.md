@@ -252,7 +252,7 @@ bash scripts/finetune_lora_vision.sh
 - `--gradient_accumulation_steps` (int): Gradient accumulation steps (default: 4).
 - `--freeze_vision_tower` (bool): Option to freeze vision_model (default: False).
 - `--freeze_llm` (bool): Option to freeze LLM (default: False).
-- `--tune_merger` (bool): Option to tune projector (default: True).
+- `--freeze_merger` (bool): Option to tune projector (default: False).
 - `--num_lora_modules` (int): Number of target modules to add LoRA (-1 means all layers).
 - `--vision_lr` (float): Learning rate for vision_model.
 - `--merger_lr` (float): Learning rate for merger(projector).

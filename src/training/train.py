@@ -47,7 +47,7 @@ def configure_vision_tower(model, training_args, compute_dtype, device):
     
     # Handle merger specifically
     merger_params = model.visual.merger.parameters()
-    set_requires_grad(merger_params, training_args.tune_merger)
+    set_requires_grad(merger_params, not training_args.freeze_merger)
 
 def configure_llm(model, training_args):
     lm_head = model.lm_head.parameters()
