@@ -13,7 +13,10 @@ GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
 
 export PYTHONPATH=src:$PYTHONPATH
 
-deepspeed src/training/train.py \
+deepspeed src/training/train_dpo.py \
+    --dpo_loss "sigmoid" \
+    --precompute_ref_log_probs False \
+    --beta 0.1 \
     --use_liger True \
     --deepspeed scripts/zero3_offload.json \
     --model_id $MODEL_NAME \
@@ -26,7 +29,7 @@ deepspeed src/training/train.py \
     --bf16 True \
     --fp16 False \
     --disable_flash_attn2 False \
-    --output_dir output/test_fft \
+    --output_dir output/test_dpo \
     --num_train_epochs 1 \
     --per_device_train_batch_size $BATCH_PER_DEVICE \
     --gradient_accumulation_steps $GRAD_ACCUM_STEPS \

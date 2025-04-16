@@ -149,7 +149,7 @@ dependencies:
       - traitlets==5.14.2
       - triton==3.1.0
       - transformers==4.50.1
-      - trl==0.16.0
+      - trl==0.16.1
       - typing-extensions==4.9.0
       - tyro==0.8.4
       - tzdata==2024.1

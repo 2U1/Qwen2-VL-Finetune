@@ -3,9 +3,9 @@ import torch
 from peft import LoraConfig, get_peft_model
 import ast
 from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2VLForConditionalGeneration, HfArgumentParser, Qwen2_5_VLForConditionalGeneration
-from training.trainer import QwenTrainer
-from training.data import make_supervised_data_module
-from training.params import DataArguments, ModelArguments, TrainingArguments
+from training.dpo_trainer import QwenDPOTrainer
+from training.data import make_dpo_data_module
+from training.params import DataArguments, ModelArguments, DPOArguments
 from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib
 from liger_kernel.transformers import apply_liger_kernel_to_qwen2_vl, apply_liger_kernel_to_qwen2_5_vl
@@ -61,7 +61,7 @@ def train():
     global local_rank
 
     parser = HfArgumentParser(
-        (ModelArguments, DataArguments, TrainingArguments))
+        (ModelArguments, DataArguments, DPOArguments))
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     use_liger = training_args.use_liger
@@ -117,6 +117,8 @@ def train():
             )
         ))
 
+    ref_model = None
+
     if "Qwen2.5" in model_args.model_id:
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             model_args.model_id,
@@ -124,6 +126,15 @@ def train():
             attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
             **bnb_model_from_pretrained_args
         )
+
+        if not training_args.lora_enable:
+            ref_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                model_args.model_id,
+                torch_dtype=compute_dtype,
+                attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
+                **bnb_model_from_pretrained_args
+            )
+
     else:
         model = Qwen2VLForConditionalGeneration.from_pretrained(
             model_args.model_id,
@@ -131,6 +142,13 @@ def train():
             attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
             **bnb_model_from_pretrained_args
         )
+        if not training_args.lora_enable:
+            ref_model = Qwen2VLForConditionalGeneration.from_pretrained(
+                model_args.model_id,
+                torch_dtype=compute_dtype,
+                attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
+                **bnb_model_from_pretrained_args
+            )
 
     model.config.use_cache = False
     model_to_configure = model
@@ -167,6 +185,10 @@ def train():
 
     # model.config.tokenizer_model_max_length = processor.tokenizer.model_max_length
 
+    if ref_model is not None:
+        ref_model.eval()
+        ref_model.config.use_cache = False
+
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
         for name, module in model.named_modules():
@@ -181,15 +203,20 @@ def train():
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
 
-    data_module = make_supervised_data_module(model_id=model_args.model_id,
+    dataset_module = make_dpo_data_module(model_id=model_args.model_id,
                                               processor=processor,
                                               data_args=data_args)
+    
+    training_args.padding_value = processor.tokenizer.pad_token_id
 
-    trainer = QwenTrainer(
+    trainer = QwenDPOTrainer(
         model=model,
-        processor=processor,
+        ref_model = ref_model,
+        train_dataset=dataset_module["train_dataset"],
+        eval_dataset = dataset_module["eval_dataset"],
+        data_collator= dataset_module["data_collator"],
+        processing_class=processor,
         args=training_args,
-        **data_module
     )
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
