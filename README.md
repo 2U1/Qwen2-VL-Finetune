@@ -328,15 +328,6 @@ bash scripts/finetune_video.sh
 If you run out of vram, you can use [zero3_offload](./scripts/zero3_offload.json) instead of [zero3](./scripts/zero3_offload.json).<br>
 You could use [zero2_offload](./scripts/zero2_offload.json) for a bit faster training.
 
-### DPO Finetuning
-
-You can train the model using Direct Preference Optimization (DPO).<br>
-The process is quite similar to Supervised Fine-Tuning (SFT), and you can also apply LoRA during DPO training just like in SFT.
-
-```bash
-bash scripts/finetune_dpo.sh
-```
-
 #### Merge LoRA Weights
 
 ```
@@ -344,6 +335,15 @@ bash scripts/merge_lora.sh
 ```
 
 **Note:** Remember to replace the paths in `finetune.sh` or `finetune_lora.sh` with your specific paths. (Also in `merge_lora.sh` when using LoRA.)
+
+## DPO Finetuning
+
+You can train the model using Direct Preference Optimization (DPO).<br>
+The process is quite similar to Supervised Fine-Tuning (SFT), and you can also apply LoRA during DPO training just like in SFT.
+
+```bash
+bash scripts/finetune_dpo.sh
+```
 
 #### Image Resolution for performance boost
 

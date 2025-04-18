@@ -13,7 +13,7 @@ GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
 
 export PYTHONPATH=src:$PYTHONPATH
 
-deepspeed src/training/train_dpo.py \
+deepspeed src/train/train_dpo.py \
     --dpo_loss "sigmoid" \
     --precompute_ref_log_probs False \
     --beta 0.1 \
