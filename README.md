@@ -73,7 +73,7 @@ The settings are done in the conda env named `train`.<br><br>
 You could find more information about the image [here](https://hub.docker.com/repository/docker/john119/vlm/general).
 
 ```
-docker pull john119/vlm:v1
+docker pull john119/vlm
 docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john119/vlm:v1 /bin/bash
 ```
 
