@@ -40,12 +40,13 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
     - [Environments](#environments)
     - [Using `environment.yaml`](#using-environmentyaml)
   - [Dataset Preparation](#dataset-preparation)
-  - [Training](#training)
+  - [Supervised Fine Tuning](#supervised-fine-tuning)
     - [Full Finetuning](#full-finetuning)
     - [Full Finetuning with 8-bit](#full-finetuning-with-8-bit)
     - [Finetune with LoRA](#finetune-with-lora)
     - [Train with video dataset](#train-with-video-dataset)
       - [Merge LoRA Weights](#merge-lora-weights)
+  - [DPO Finetuning](#dpo-finetuning)
       - [Image Resolution for performance boost](#image-resolution-for-performance-boost)
       - [Issue for libcudnn error](#issue-for-libcudnn-error)
   - [Inference](#inference)
@@ -74,7 +75,7 @@ You could find more information about the image [here](https://hub.docker.com/re
 
 ```
 docker pull john119/vlm
-docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john119/vlm:v1 /bin/bash
+docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john119/vlm /bin/bash
 ```
 
 ## Installation
