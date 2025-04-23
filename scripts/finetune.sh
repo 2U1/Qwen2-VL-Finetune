@@ -13,7 +13,7 @@ GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
 
 export PYTHONPATH=src:$PYTHONPATH
 
-deepspeed src/train/train.py \
+deepspeed src/train/train_sft.py \
     --use_liger True \
     --deepspeed scripts/zero3_offload.json \
     --model_id $MODEL_NAME \
