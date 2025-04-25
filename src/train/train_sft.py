@@ -222,7 +222,7 @@ def train():
         )
 
         non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
-            model.named_parameters(), require_grad_only=False
+            model.named_parameters(), require_grad_only=True
         )
 
         if local_rank == 0 or local_rank == -1:
