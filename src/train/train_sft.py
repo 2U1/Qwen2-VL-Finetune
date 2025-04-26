@@ -202,7 +202,7 @@ def train():
 
     trainer = QwenTrainer(
         model=model,
-        processor=processor,
+        processing_class=processor,
         args=training_args,
         **data_module
     )

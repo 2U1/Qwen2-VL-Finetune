@@ -7,21 +7,12 @@ from transformers.trainer import (
     is_sagemaker_mp_enabled,
     get_parameter_names,
     ALL_LAYERNORM_LAYERS,
-    is_peft_available,
-    WEIGHTS_NAME,
-    TRAINING_ARGS_NAME,
-    SAFE_WEIGHTS_NAME,
     TRAINER_STATE_NAME,
     PREFIX_CHECKPOINT_DIR,
     logger,
+    ExportableState,
+    SaveStrategy
 )
-import safetensors
-from peft import PeftModel
-from typing import Optional
-import numpy as np
-from transformers.processing_utils import ProcessorMixin
-from transformers.modeling_utils import PreTrainedModel
-from peft import PeftModel
 from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3
 
 def maybe_zero_3(param, ignore_status=False, name=None):
@@ -143,8 +134,13 @@ class QwenTrainer(Trainer):
                 logger.info(f"skipped: {skipped/2**20}M params")
 
         return self.optimizer
-
+    
     def _save_checkpoint(self, model, trial):
+        # In all cases, including ddp/dp/deepspeed, self.model is always a reference to the model we
+        # want to save except FullyShardedDDP.
+        # assert unwrap_model(model) is self.model, "internal model should be a reference to self.model"
+
+        # Save model checkpoint
         if self.args.lora_enable:
             checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
 
@@ -153,74 +149,42 @@ class QwenTrainer(Trainer):
 
             run_dir = self._get_output_dir(trial=trial)
             output_dir = os.path.join(run_dir, checkpoint_folder)
-
             self.save_model(output_dir, _internal_call=True)
-
             non_lora_weights = get_peft_state_non_lora_maybe_zero_3(self.model.named_parameters(), require_grad_only=False)
             torch.save(non_lora_weights, os.path.join(output_dir, "non_lora_state_dict.bin"))
+
+            if self.args.save_strategy in [SaveStrategy.STEPS, SaveStrategy.EPOCH] and self.state.best_global_step:
+                best_checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.best_global_step}"
+                best_checkpoint_dir = os.path.join(run_dir, best_checkpoint_folder)
+
+                if os.path.exists(best_checkpoint_dir):
+                    self.state.best_model_checkpoint = best_checkpoint_dir
 
             if not self.args.save_only_model:
                 # Save optimizer and scheduler
                 self._save_optimizer_and_scheduler(output_dir)
+                self._save_scaler(output_dir)
                 # Save RNG state
                 self._save_rng_state(output_dir)
 
             # Save the Trainer state
             if self.args.should_save:
-                # Update the `TrainerControl` state to where we are currently
-                self.state.stateful_callbacks["TrainerControl"] = self.control.state()
+                # Update `ExportableState` callbacks and `TrainerControl` state to where we are currently
+                for cb in [
+                    cb for cb in self.callback_handler.callbacks + [self.control] if isinstance(cb, ExportableState)
+                ]:
+                    cb_name = cb.__class__.__name__
+                    cb_state = cb.state()
+                    if isinstance(self.state.stateful_callbacks[cb_name], list):
+                        self.state.stateful_callbacks[cb_name].append(cb_state)
+                    else:
+                        self.state.stateful_callbacks[cb_name] = cb_state
                 self.state.save_to_json(os.path.join(output_dir, TRAINER_STATE_NAME))
 
             if self.args.push_to_hub:
                 self._push_from_checkpoint(output_dir)
-
-            # Maybe delete some older checkpoints.
-            if self.args.should_save:
-                # Solely rely on numerical checkpoint id for rotation.
-                # mtime is not reliable especially on some fuse fs in cloud environments.
-                self._rotate_checkpoints(use_mtime=False, output_dir=run_dir)
-
         else:
             super(QwenTrainer, self)._save_checkpoint(model, trial)
-
-    def _save(self, output_dir: Optional[str] = None, state_dict=None):
-            # If we are executing this function, we are the process zero, so we don't check for that.
-            output_dir = output_dir if output_dir is not None else self.args.output_dir
-            os.makedirs(output_dir, exist_ok=True)
-            logger.info(f"Saving model checkpoint to {output_dir}")
-
-            supported_classes = (PreTrainedModel,) if not is_peft_available() else (PreTrainedModel, PeftModel)
-            # Save a trained model and configuration using `save_pretrained()`.
-            # They can then be reloaded using `from_pretrained()`
-            if not isinstance(self.model, supported_classes):
-                if state_dict is None:
-                    state_dict = self.model.state_dict()
-
-                if isinstance(self.accelerator.unwrap_model(self.model), supported_classes):
-                    self.accelerator.unwrap_model(self.model).save_pretrained(
-                        output_dir, state_dict=state_dict, safe_serialization=self.args.save_safetensors
-                    )
-                else:
-                    logger.info("Trainer.model is not a `PreTrainedModel`, only saving its state dict.")
-                    if self.args.save_safetensors:
-                        safetensors.torch.save_file(
-                            state_dict, os.path.join(output_dir, SAFE_WEIGHTS_NAME), metadata={"format": "pt"}
-                        )
-                    else:
-                        torch.save(state_dict, os.path.join(output_dir, WEIGHTS_NAME))
-            else:
-                self.model.save_pretrained(
-                    output_dir, state_dict=state_dict, safe_serialization=self.args.save_safetensors
-                )
-
-            if self.tokenizer is not None:
-                self.tokenizer.save_pretrained(output_dir)
-
-            if self.processor is not None:
-                self.processor.save_pretrained(output_dir)
-
-            # Good practice: save your training arguments together with the trained model
-            torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
 
     # def training_step(self, model, inputs):
     #     for name, param in model.named_parameters():
