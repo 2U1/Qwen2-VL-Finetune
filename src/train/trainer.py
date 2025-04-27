@@ -31,9 +31,8 @@ def maybe_zero_3(param, ignore_status=False, name=None):
 
 class QwenTrainer(Trainer):
 
-    def __init__(self, processor, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(QwenTrainer, self).__init__(*args, **kwargs)
-        self.processor = processor
 
     def create_optimizer(self):
         """
