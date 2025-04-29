@@ -43,7 +43,6 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
   - [Dataset Preparation](#dataset-preparation)
   - [Supervised Fine Tuning](#supervised-fine-tuning)
     - [Full Finetuning](#full-finetuning)
-    - [Full Finetuning with 8-bit](#full-finetuning-with-8-bit)
     - [Finetune with LoRA](#finetune-with-lora)
     - [Train with video dataset](#train-with-video-dataset)
       - [Image Resolution for vram usage](#image-resolution-for-vram-usage)
@@ -246,16 +245,6 @@ To run the training script, use the following command:
 ```bash
 bash scripts/finetune.sh
 ```
-
-### Full Finetuning with 8-bit
-
-```bash
-bash scripts/finetune_8bit.sh
-```
-
-**You need to install [ms-amp](https://github.com/Azure/MS-AMP) to use this script.**<br>
-This script will finetune the model with fp8 model dtype. If you run out of vram, you could use this.<br>
-You can even use offloading with fp8 training. For detailed config, you could change the deepspeed config files.
 
 ### Finetune with LoRA
 
