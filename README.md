@@ -47,8 +47,8 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
     - [Train with video dataset](#train-with-video-dataset)
       - [Merge LoRA Weights](#merge-lora-weights)
   - [DPO Finetuning](#dpo-finetuning)
-      - [Image Resolution for performance boost](#image-resolution-for-performance-boost)
-      - [Issue for libcudnn error](#issue-for-libcudnn-error)
+    - [Image Resolution for performance boost](#image-resolution-for-performance-boost)
+    - [Issue for libcudnn error](#issue-for-libcudnn-error)
   - [Inference](#inference)
     - [Gradio Infernce (WebUI)](#gradio-infernce-webui)
   - [TODO](#todo)
@@ -329,24 +329,7 @@ bash scripts/finetune_video.sh
 If you run out of vram, you can use [zero3_offload](./scripts/zero3_offload.json) instead of [zero3](./scripts/zero3_offload.json).<br>
 You could use [zero2_offload](./scripts/zero2_offload.json) for a bit faster training.
 
-#### Merge LoRA Weights
-
-```
-bash scripts/merge_lora.sh
-```
-
-**Note:** Remember to replace the paths in `finetune.sh` or `finetune_lora.sh` with your specific paths. (Also in `merge_lora.sh` when using LoRA.)
-
-## DPO Finetuning
-
-You can train the model using Direct Preference Optimization (DPO).<br>
-The process is quite similar to Supervised Fine-Tuning (SFT), and you can also apply LoRA during DPO training just like in SFT.
-
-```bash
-bash scripts/finetune_dpo.sh
-```
-
-#### Image Resolution for performance boost
+#### Image Resolution for vram usage
 
 The model supprots a wide range of resolution inputs. By default, it uses the native resolution for input.
 For better performance using native or higer pixel numbers are recommended, however it takes too much memory and computation time for large images. So you could adjust the pixel numbers for it.
@@ -369,14 +352,22 @@ Besides you could directly set the image/video height and width to control over 
 
 These values will be rounded to the nearest multiple of 28.
 
-#### Issue for libcudnn error
+#### Merge LoRA Weights
 
 ```
-Could not load library libcudnn_cnn_train.so.8. Error: /usr/local/cuda-12.1/lib/libcudnn_cnn_train.so.8: undefined symbol: _ZN5cudnn3cnn34layerNormFwd_execute_internal_implERKNS_7backend11VariantPackEP11CUstream_stRNS0_18LayerNormFwdParamsERKNS1_20NormForwardOperationEmb, version libcudnn_cnn_infer.so.8
+bash scripts/merge_lora.sh
 ```
 
-You could run `unset LD_LIBRARY_PATH` for this error.
-You could see this [issue](https://github.com/andimarafioti/florence2-finetuning/issues/2)
+**Note:** Remember to replace the paths in `finetune.sh` or `finetune_lora.sh` with your specific paths. (Also in `merge_lora.sh` when using LoRA.)
+
+## DPO Finetuning
+
+You can train the model using Direct Preference Optimization (DPO).<br>
+The process is quite similar to Supervised Fine-Tuning (SFT), and you can also apply LoRA during DPO training just like in SFT.
+
+```bash
+bash scripts/finetune_dpo.sh
+```
 
 ## Inference
 
@@ -398,6 +389,15 @@ python -m src.serve.app \
 ```
 
 You can launch gradio based demo with this command. This can also set some other generation configs like `repetition_penalty`, `temperature` etc.
+
+## Issue for libcudnn error
+
+```
+Could not load library libcudnn_cnn_train.so.8. Error: /usr/local/cuda-12.1/lib/libcudnn_cnn_train.so.8: undefined symbol: _ZN5cudnn3cnn34layerNormFwd_execute_internal_implERKNS_7backend11VariantPackEP11CUstream_stRNS0_18LayerNormFwdParamsERKNS1_20NormForwardOperationEmb, version libcudnn_cnn_infer.so.8
+```
+
+You could run `unset LD_LIBRARY_PATH` for this error.
+You could see this [issue](https://github.com/andimarafioti/florence2-finetuning/issues/2)
 
 ## TODO
 
