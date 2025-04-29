@@ -38,6 +38,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
   - [Docker](#docker)
   - [Installation](#installation)
     - [Environments](#environments)
+    - [Using `requirements.txt`](#using-requirementstxt)
     - [Using `environment.yaml`](#using-environmentyaml)
   - [Dataset Preparation](#dataset-preparation)
   - [Supervised Fine Tuning](#supervised-fine-tuning)
@@ -45,12 +46,12 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
     - [Full Finetuning with 8-bit](#full-finetuning-with-8-bit)
     - [Finetune with LoRA](#finetune-with-lora)
     - [Train with video dataset](#train-with-video-dataset)
+      - [Image Resolution for vram usage](#image-resolution-for-vram-usage)
       - [Merge LoRA Weights](#merge-lora-weights)
   - [DPO Finetuning](#dpo-finetuning)
-    - [Image Resolution for performance boost](#image-resolution-for-performance-boost)
-    - [Issue for libcudnn error](#issue-for-libcudnn-error)
   - [Inference](#inference)
     - [Gradio Infernce (WebUI)](#gradio-infernce-webui)
+  - [Issue for libcudnn error](#issue-for-libcudnn-error)
   - [TODO](#todo)
   - [Known Issues](#known-issues)
   - [License](#license)
@@ -84,15 +85,23 @@ docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john1
 
 - Ubuntu 22.04
 - Nvidia-Driver 550.120
-- Cuda version 12.4
+- Cuda version 12.6
 
 Install the required packages using `environment.yaml`.
+
+### Using `requirements.txt`
+
+```bash
+pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cu126
+pip install qwen-vl-utils
+pip install flash-attn --no-build-isolation
+```
 
 ### Using `environment.yaml`
 
 ```bash
 conda env create -f environment.yaml
-conda activate qwen2
+conda activate train
 pip install qwen-vl-utils
 pip install flash-attn --no-build-isolation
 ```
