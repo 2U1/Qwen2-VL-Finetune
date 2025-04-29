@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from transformers import TrainingArguments
+from transformers import TrainingArguments as HFTrainingArguments
 from trl import DPOConfig as DPOConfigTRL
 
 
@@ -11,7 +11,7 @@ class ModelArguments:
 
 
 @dataclass
-class TrainingArguments(TrainingArguments):
+class TrainingArguments(HFTrainingArguments):
     cache_dir: Optional[str] = field(default=None)
     optim: str = field(default="adamw_torch")
     adam_beta1: float = field(default=0.9)
