@@ -84,7 +84,7 @@ docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john1
 
 - Ubuntu 22.04
 - Nvidia-Driver 550.120
-- Cuda version 12.6
+- Cuda version 12.4
 
 Install the required packages using `environment.yaml`.
 
