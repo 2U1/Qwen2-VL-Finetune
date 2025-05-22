@@ -91,7 +91,7 @@ Install the required packages using `environment.yaml`.
 ### Using `requirements.txt`
 
 ```bash
-pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cu126
+pip install -r requirements.txt -f https://download.pytorch.org/whl/cu124
 pip install qwen-vl-utils
 pip install flash-attn --no-build-isolation
 ```
