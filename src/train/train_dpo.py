@@ -3,8 +3,8 @@ import torch
 from peft import LoraConfig, get_peft_model
 import ast
 from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2VLForConditionalGeneration, HfArgumentParser, Qwen2_5_VLForConditionalGeneration
-from train.dpo_trainer import QwenDPOTrainer
-from train.data import make_dpo_data_module
+from src.trainer import QwenDPOTrainer
+from src.dataset import make_dpo_data_module
 from train.params import DataArguments, ModelArguments, DPOArguments
 from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib

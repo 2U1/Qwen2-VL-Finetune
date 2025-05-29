@@ -1,15 +1,16 @@
 import os
 import torch
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig
 import ast
-from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2VLForConditionalGeneration, HfArgumentParser, Qwen2_5_VLForConditionalGeneration
-from src.trainer import QwenSFTTrainer
-from src.dataset import make_supervised_data_module
-from train.params import DataArguments, ModelArguments, TrainingArguments
-from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib
-from liger_kernel.transformers import apply_liger_kernel_to_qwen2_vl, apply_liger_kernel_to_qwen2_5_vl
+from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2VLForConditionalGeneration, HfArgumentParser, Qwen2_5_VLForConditionalGeneration
+
+from src.trainer import QwenGRPOTrainer
+from src.dataset import make_grpo_data_module
+from train.params import DataArguments, ModelArguments, GRPOArguments
+from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 from monkey_patch_forward import replace_qwen2_5_with_mixed_modality_forward, replace_qwen_2_with_mixed_modality_forward
+from src.utils import  load_reward_funcs
 
 local_rank = None
 
@@ -61,23 +62,16 @@ def train():
     global local_rank
 
     parser = HfArgumentParser(
-        (ModelArguments, DataArguments, TrainingArguments))
+        (ModelArguments, DataArguments, GRPOArguments))
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    use_liger = training_args.use_liger
+    training_args.use_liger_loss = False
     if "Qwen2.5" in model_args.model_id:
         # It monkey patches the forward to handle mixed modality inputs.
-        replace_qwen2_5_with_mixed_modality_forward(use_liger=use_liger)
-        # This is becuase mixed-modality training monkey-patches the model forward method.
-        if use_liger:
-            apply_liger_kernel_to_qwen2_5_vl(fused_linear_cross_entropy=False)
+        replace_qwen2_5_with_mixed_modality_forward(use_liger=False)
     else:
         # It monkey patches the forward to handle mixed modality inputs.
-        replace_qwen_2_with_mixed_modality_forward(use_liger=use_liger)
-        # This is becuase mixed-modality training monkey-patches the model forward method.
-        if use_liger:
-            apply_liger_kernel_to_qwen2_vl(fused_linear_cross_entropy=False)
-    
+        replace_qwen_2_with_mixed_modality_forward(use_liger=False)
 
     if training_args.lora_enable and not training_args.freeze_llm:
         raise ValueError("If `lora_enable` is True, `freeze_llm` must also be True.")
@@ -108,7 +102,7 @@ def train():
             quantization_config = BitsAndBytesConfig(
                 load_in_4bit=training_args.bits==4,
                 load_in_8bit=training_args.bits==8,
-                llm_int8_skip_modules=["visual", "lm_head"],
+                llm_int8_skip_modules=["visual"],
                 llm_int8_threshold=6.0,
                 llm_int8_has_fp16_weight=False,
                 bnb_4bit_compute_dtype=compute_dtype,
@@ -124,6 +118,7 @@ def train():
             attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
             **bnb_model_from_pretrained_args
         )
+
     else:
         model = Qwen2VLForConditionalGeneration.from_pretrained(
             model_args.model_id,
@@ -146,6 +141,8 @@ def train():
         model.enable_input_require_grads()
         training_args.gradient_checkpointing_kwargs = {"use_reentrant": True}
 
+    peft_config = None
+
     if training_args.lora_enable:
         lora_namespan_exclude = training_args.lora_namespan_exclude
         peft_config = LoraConfig(
@@ -160,27 +157,8 @@ def train():
                 model.to(torch.bfloat16)
             if training_args.fp16:
                 model.to(torch.float16)
-        rank0_print("Adding LoRA to the model...")
-        model = get_peft_model(model, peft_config)
-
-        # Peft maodel makes vision tower and merger freezed again.
-        # Configuring fuction could be called here, but sometimes it does not work properly.
-        # So I just made it this way.
-        # Need to be fixed in the future.
-
-        if not training_args.freeze_vision_tower:
-            for name, param in model.named_parameters():
-                if "visual" in name:
-                    param.requires_grad = True
-
-        if not training_args.freeze_merger:
-            for name, param in model.named_parameters():
-                if "merger" in name:
-                    param.requires_grad = True
 
     processor = AutoProcessor.from_pretrained(model_args.model_id)
-
-    # model.config.tokenizer_model_max_length = processor.tokenizer.model_max_length
 
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
@@ -196,15 +174,19 @@ def train():
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
 
-    data_module = make_supervised_data_module(model_id=model_args.model_id,
+    dataset_module = make_grpo_data_module(model_id=model_args.model_id,
                                               processor=processor,
                                               data_args=data_args)
 
-    trainer = QwenSFTTrainer(
+    reward_funcs = load_reward_funcs()
+
+    trainer = QwenGRPOTrainer(
         model=model,
-        processing_class=processor,
+        train_dataset=dataset_module["train_dataset"],
+        eval_dataset = dataset_module["eval_dataset"],
+        reward_funcs=reward_funcs,
         args=training_args,
-        **data_module
+        peft_config=peft_config,
     )
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
@@ -222,7 +204,7 @@ def train():
         )
 
         non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
-            model.named_parameters(), require_grad_only=True
+            model.named_parameters(), require_grad_only=False
         )
 
         if local_rank == 0 or local_rank == -1:

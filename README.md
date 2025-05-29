@@ -13,6 +13,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/05/29] 🔥Supports GRPO training.
 - [2025/04/16] 🔥Supports DPO training.
 - [2025/03/04] Add Option for using liger kernel.
 - [2025/02/18] 🔥Supports mixed-modality dataset with zero3.
@@ -66,6 +67,9 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 - Disable/enable Flash Attention 2
 - Multi-image and video training
 - Training optimized with liger kernel
+- Mixed-modality dataset
+- Direct Preference Optimization (DPO)
+- Group Relative Policy Optimization (GRPO)
 
 ## Docker
 
@@ -229,6 +233,30 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 ```
 
 </details>
+
+<summary>Example for GRPO dataset</summary>
+
+```json
+[
+  {
+    "id": "06bc8a17-bb1c-4007-8c08-92c41e2628b2",
+    "image": "image_2.jpg",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "Based on the image, which geometric method is used to determine the bearing angle, and why is it the most appropriate choice?"
+      },
+      {
+        "from": "gpt",
+        "value": "<think>Let's analyze the image step-by-step. The image shows a right-angled triangle with points B, C, and A. The angle at point B is a right angle, indicating that trigonometric functions can be applied. To find the bearing angle, we need to relate the sides of the triangle. The tangent function is suitable here because it relates the opposite side (BC) to the adjacent side (AB) in a right-angled triangle. By using the tangent function, we can calculate the angle at point A, which is the bearing angle. Therefore, the most appropriate geometric method is the use of trigonometric functions.</think>\n\n<answer>A</answer>"
+      }
+    ]
+  }
+  ...
+]
+```
+
+</details>
 <br><br>
 
 Adding the new domain-specific data on top of the general data from open-source data will enhance downstream capabilities while retaining the foundational skills. Of course, you can also choose to fine-tune solely on the new data based on your requirements.
@@ -367,6 +395,50 @@ The process is quite similar to Supervised Fine-Tuning (SFT), and you can also a
 bash scripts/finetune_dpo.sh
 ```
 
+Most of the training arugments are same as SFT, but few other arguments are added for DPO training.
+
+<details>
+<summary>Training arguments</summary>
+
+- `--dpo_loss` (str): Loss type for dpo. (default: 'sigmoid')
+- `--precompute_ref_log_probs` (bool): Wheter to precompute the reference log probs (default: False)
+- `--beta` (float): The beta value for DPO (default: 0.1)
+
+</details>
+
+## GRPO Finetuning
+
+You can traing the model using Group Relative Policy Optimization (GRPO) <br>
+The process is quite similar to Supervised Fine-Tuning (SFT), and you can also apply LoRA during GRPO training just like in SFT.<br>
+<br>
+To train the model with GRPO, you need to use a reward model or reward function to calculate the reward score and optimize the model. You could add your own reward functions in the
+[reward_funcs.py](./src/train/reward_funcs.py). The training script will automatically load the functions that ends with `_reward`.<br>
+For the system prompt you could use your own system prompt by adding in the file [constants.py](./src/constants.py).<br>
+
+You could start training using this script.
+
+```bash
+bash scripts/finetune_dpo.sh
+```
+
+Most of the training arugments are same as SFT, but few other arguments are added for GRPO training.
+
+<details>
+<summary>Training arguments</summary>
+
+- `--temperature` (float): Generation config (default: 0.9)
+- `--top_p` (float): Generation config (default: 1.0)
+- `--top_k` (int): Generation config (default: 50)
+- `--min_p` (float): Generation config (default: None)
+- `--repetition_penalty` (float): Generation config (default: 1.0)
+- `--max_completion_length` (int): Max length for the completion (default: 256)
+- `--max_prompt_length` (int): Max length for the prompt (default: 512)
+- `--beta` (float): KL Coefficient. (default: 0.04)
+
+</details>
+
+**Note:** For now, the liger GRPO loss and vllm backend are not supported. This would be fixed in the near future.
+
 ## Inference
 
 **Note:** You should use the merged weight when trained with LoRA.
@@ -406,7 +478,8 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 - [x] Monkey-patch liger-kernel for Qwen2.5-VL
 - [x] Update the code base to the latest transformers.
 - [x] Add DPO
-- [ ] Add GRPO
+- [x] Add GRPO
+- [ ] Fix GRPO liger loss to work
 
 ## Known Issues
 

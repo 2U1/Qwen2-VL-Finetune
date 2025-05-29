@@ -29,10 +29,10 @@ def maybe_zero_3(param, ignore_status=False, name=None):
         param = param.detach().cpu().clone()
     return param
 
-class QwenTrainer(Trainer):
+class QwenSFTTrainer(Trainer):
 
     def __init__(self, *args, **kwargs):
-        super(QwenTrainer, self).__init__(*args, **kwargs)
+        super(QwenSFTTrainer, self).__init__(*args, **kwargs)
 
     def create_optimizer(self):
         """
@@ -183,7 +183,7 @@ class QwenTrainer(Trainer):
             if self.args.push_to_hub:
                 self._push_from_checkpoint(output_dir)
         else:
-            super(QwenTrainer, self)._save_checkpoint(model, trial)
+            super(QwenSFTTrainer, self)._save_checkpoint(model, trial)
 
     # def training_step(self, model, inputs):
     #     for name, param in model.named_parameters():
