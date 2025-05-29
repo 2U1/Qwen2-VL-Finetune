@@ -411,9 +411,13 @@ Most of the training arugments are same as SFT, but few other arguments are adde
 You can traing the model using Group Relative Policy Optimization (GRPO) <br>
 The process is quite similar to Supervised Fine-Tuning (SFT), and you can also apply LoRA during GRPO training just like in SFT.<br>
 <br>
-To train the model with GRPO, you need to use a reward model or reward function to calculate the reward score and optimize the model. You could add your own reward functions in the
-[reward_funcs.py](./src/train/reward_funcs.py). The training script will automatically load the functions that ends with `_reward`.<br>
-For the system prompt you could use your own system prompt by adding in the file [constants.py](./src/constants.py).<br>
+
+### Prerequisites
+
+| What                      | Where                       | Notes                                                                                       |
+| ------------------------- | --------------------------- | ------------------------------------------------------------------------------------------- |
+| **Reward functions**      | `src/train/reward_funcs.py` | Add any function that ends with `_reward`. The training script picks them up automatically. |
+| **Custom system prompts** | `src/constants.py`          | Append your own prompt strings here.                                                        |
 
 You could start training using this script.
 
@@ -437,7 +441,7 @@ Most of the training arugments are same as SFT, but few other arguments are adde
 
 </details>
 
-**Note:** For now, the liger GRPO loss and vllm backend are not supported. This would be fixed in the near future.
+**Note:** **Liger GRPO loss** and **vLLM back-end** are not yet supported. Both will be added soon.
 
 ## Inference
 
