@@ -235,6 +235,7 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 
 </details>
 
+<details>
 <summary>Example for GRPO dataset</summary>
 
 ```json
@@ -258,6 +259,7 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 ```
 
 </details>
+
 <br><br>
 
 Adding the new domain-specific data on top of the general data from open-source data will enhance downstream capabilities while retaining the foundational skills. Of course, you can also choose to fine-tune solely on the new data based on your requirements.
