@@ -49,6 +49,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
       - [Image Resolution for vram usage](#image-resolution-for-vram-usage)
       - [Merge LoRA Weights](#merge-lora-weights)
   - [DPO Finetuning](#dpo-finetuning)
+  - [GRPO Finetuning](#grpo-finetuning)
   - [Inference](#inference)
     - [Gradio Infernce (WebUI)](#gradio-infernce-webui)
   - [Issue for libcudnn error](#issue-for-libcudnn-error)
