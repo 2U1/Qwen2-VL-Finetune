@@ -62,7 +62,7 @@ from trl.trainer.utils import (
 )
 
 from src.train.train_utils import get_peft_state_non_lora_maybe_zero_3
-from src.utils import MULTIMODAL_KEYWORDS
+from src.constants import MULTIMODAL_KEYWORDS
 
 from qwen_vl_utils import process_vision_info
 
