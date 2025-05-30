@@ -6,7 +6,7 @@ import transformers
 import ujson as json
 from torch.utils.data import Dataset
 
-from src.train.params import DataArguments
+from src.params import DataArguments
 from src.constants import (
     IGNORE_INDEX,
     DEFAULT_IM_START_TOKEN,
