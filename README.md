@@ -425,7 +425,7 @@ The process is quite similar to Supervised Fine-Tuning (SFT), and you can also a
 You could start training using this script.
 
 ```bash
-bash scripts/finetune_dpo.sh
+bash scripts/finetune_grpo.sh
 ```
 
 Most of the training arugments are same as SFT, but few other arguments are added for GRPO training.
