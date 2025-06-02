@@ -178,7 +178,7 @@ def train():
                                               processor=processor,
                                               data_args=data_args)
 
-    reward_funcs = load_reward_funcs()
+    reward_funcs = load_reward_funcs("src.train.reward_funcs")
 
     trainer = QwenGRPOTrainer(
         model=model,
