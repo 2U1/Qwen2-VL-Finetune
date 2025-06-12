@@ -40,6 +40,7 @@ def qwen_2_mixed_modality_forward_with_flce(
     video_grid_thw: Optional[torch.LongTensor] = None,
     rope_deltas: Optional[torch.LongTensor] = None,
     cache_position: Optional[torch.LongTensor] = None,
+    second_per_grid_ts: Optional[torch.Tensor] = None,
 ):
     
     output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
@@ -196,6 +197,7 @@ def qwen_2_mixed_modality_forward(
     video_grid_thw: Optional[torch.LongTensor] = None,
     rope_deltas: Optional[torch.LongTensor] = None,
     cache_position: Optional[torch.LongTensor] = None,
+    second_per_grid_ts: Optional[torch.Tensor] = None,
 ):
     
     output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
