@@ -232,8 +232,6 @@ def train():
             torch.save(non_lora_state_dict, os.path.join(training_args.output_dir, "non_lora_state_dict.bin"))
     else:
         safe_save_model_for_hf_trainer(trainer, output_dir=training_args.output_dir)
-        if local_rank == 0 or local_rank == -1:Add commentMore actions
-            processor.save_pretrained(training_args.output_dir)
 
 
 
