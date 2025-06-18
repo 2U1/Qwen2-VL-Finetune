@@ -258,6 +258,8 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 ]
 ```
 
+**Note:** You should remove all `<image>` and `<video>` tokens in your dataset. It works a bit different with other training methods.
+
 </details>
 
 <br><br>
@@ -422,7 +424,8 @@ The process is quite similar to Supervised Fine-Tuning (SFT), and you can also a
 | **Reward functions**      | `src/train/reward_funcs.py` | Add any function that ends with `_reward`. The training script picks them up automatically. |
 | **Custom system prompts** | `src/constants.py`          | Append your own prompt strings here.                                                        |
 
-You could start training using this script.
+You could start training using this script.<br>
+Before training, **Please check the dataset format once more.** The format is a bit different from other training methods.
 
 ```bash
 bash scripts/finetune_grpo.sh
