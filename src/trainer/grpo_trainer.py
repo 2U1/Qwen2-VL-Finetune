@@ -747,29 +747,24 @@ class QwenGRPOTrainer(Trainer):
     # Get the per-token log probabilities for the completions for the model and the reference model
     @profiling_decorator
     def _get_per_token_logps(self, model, input_ids, attention_mask, logits_to_keep, batch_size=None, **multimodal_inputs) -> torch.Tensor:
-        batch_size = batch_size or input_ids.size(0)  # Chunk inputs into smaller batches to reduce memory peak
-        all_logps = []
-        for i in range(0, input_ids.size(0), batch_size):
-            input_ids_batch = input_ids[i : i + batch_size]
-            attention_mask_batch = attention_mask[i : i + batch_size]
 
-            # We add 1 to `logits_to_keep` because the last logits of the sequence is later excluded
-            logits = model(
-                input_ids=input_ids_batch, attention_mask=attention_mask_batch, **multimodal_inputs
-            ).logits
-            logits = logits[:, :-1, :]  # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
-            # For transformers<=4.48, logits_to_keep argument isn't supported, so here we drop logits ourselves.
-            # See https://github.com/huggingface/trl/issues/2770
-            # VLMs dosen't have a `logits_to_keep` argument, so we handle it manually.
-            if logits_to_keep is not None:
-                logits = logits[:, -logits_to_keep:]
-                input_ids_batch = input_ids_batch[:, -logits_to_keep:]
-            # Divide logits by sampling temperature.
-            # See https://huggingface.co/blog/the_n_implementation_details_of_rlhf_with_ppo#policy-training-implementation-details
-            logits = logits / self.temperature
-            logps = selective_log_softmax(logits, input_ids_batch)  # compute logprobs for the input tokens
-            all_logps.append(logps)
-        return torch.cat(all_logps, dim=0)
+        logits = model(
+            input_ids=input_ids, attention_mask=attention_mask, **multimodal_inputs
+        ).logits
+        logits = logits[:, :-1, :]  # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
+        input_ids = input_ids[:, 1:]
+        # For transformers<=4.48, logits_to_keep argument isn't supported, so here we drop logits ourselves.
+        # See https://github.com/huggingface/trl/issues/2770
+        # VLMs dosen't have a `logits_to_keep` argument, so we handle it manually.
+        if logits_to_keep is not None:
+            logits = logits[:, -logits_to_keep:]
+            input_ids = input_ids[:, -logits_to_keep:]
+        # Divide logits by sampling temperature.
+        # See https://huggingface.co/blog/the_n_implementation_details_of_rlhf_with_ppo#policy-training-implementation-details
+        logits = logits / self.temperature
+        logps = selective_log_softmax(logits, input_ids)  # compute logprobs for the input tokens
+
+        return logps
 
     @profiling_decorator
     def _move_model_to_vllm(self):
