@@ -6,10 +6,29 @@ import transformers
 import ujson as json
 from torch.utils.data import Dataset
 
-from src.train.params import DataArguments
+from src.params import DataArguments
 from src.constants import SYSTEM_MESSAGE
 
-from .data_utils import llava_to_openai
+import re
+
+def replace_image_tokens(input_string, is_video=False):
+    pattern = r'\n?' + re.escape("<image>") + r'\n?' if not is_video else r'\n?' + re.escape("<video>") + r'\n?'
+
+    return re.sub(pattern, '', input_string)
+
+def llava_to_openai(conversations, is_video=False):
+    role_mapping = {"human": "user", "gpt": "assistant"}
+
+    transformed_data = []
+    for conversation in conversations:
+        transformed_content = replace_image_tokens(conversation["value"], is_video=is_video)
+        transformed_entry = {
+            "role": role_mapping.get(conversation["from"], conversation["from"]),
+            "content": transformed_content,
+        }
+        transformed_data.append(transformed_entry)
+
+    return transformed_data
 
 
 def get_image_content(image_path, min_pixel, max_pixel, width, height):
