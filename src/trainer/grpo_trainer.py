@@ -1136,7 +1136,9 @@ class QwenGRPOTrainer(Trainer):
         advantages = inputs["advantages"]
         # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
         # _generate_and_score_completions) and use per_token_logps.detach() instead.
-        old_per_token_logps = inputs["old_per_token_logps"] if self.num_iterations > 1 else per_token_logps.detach()
+        old_per_token_logps = (
+            per_token_logps.detach() if inputs["old_per_token_logps"] is None else inputs["old_per_token_logps"]
+        )
         coef_1 = torch.exp(per_token_logps - old_per_token_logps)
         coef_2 = torch.clamp(coef_1, 1 - self.epsilon_low, 1 + self.epsilon_high)
         per_token_loss1 = coef_1 * advantages.unsqueeze(1)
