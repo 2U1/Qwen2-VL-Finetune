@@ -1,3 +1,4 @@
+from pathlib import Path
 from peft import PeftModel
 import torch
 from transformers import BitsAndBytesConfig, Qwen2VLForConditionalGeneration, AutoProcessor, AutoConfig, Qwen2_5_VLForConditionalGeneration
@@ -39,9 +40,9 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
     if use_flash_attn:
         kwargs['_attn_implementation'] = 'flash_attention_2'
 
-    if 'lora' in model_name.lower() and model_base is None:
+    if is_lora_model(model_path) and model_base is None:
         warnings.warn('There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument.')
-    if 'lora' in model_name.lower() and model_base is not None:
+    if is_lora_model(model_path) and model_base is not None:
         lora_cfg_pretrained = AutoConfig.from_pretrained(model_path)
         if hasattr(lora_cfg_pretrained, 'quantization_config'):
             del lora_cfg_pretrained.quantization_config
@@ -72,7 +73,9 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         print('Model Loaded!!!')
 
     else:
-        with open(os.path.join(model_path, 'config.json'), 'r') as f:
+        print(f"Loading model from {model_path} as a standard model. Adapter files were not found, so it can't be merged")
+        config_path = Path(model_path) / 'config.json'
+        with open(config_path, 'r') as f:
             config = json.load(f)
 
         if "Qwen2_5" in config["architectures"][0]:
@@ -85,6 +88,18 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
 
     return processor, model
 
+def is_lora_model(model_path: str | Path) -> bool:
+    """
+    Check if a model directory contains LoRA adapter files.
+    
+    Args:
+        model_path: Path to the model directory
+        
+    Returns:
+        bool: True if the directory contains LoRA adapter files
+    """
+    model_dir = Path(model_path)
+    return (model_dir / 'adapter_config.json').exists() and (model_dir / 'adapter_model.safetensors').exists()
 
 def get_model_name_from_path(model_path):
     model_path = model_path.strip("/")
