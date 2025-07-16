@@ -179,6 +179,7 @@ class QwenSFTTrainer(Trainer):
                     else:
                         self.state.stateful_callbacks[cb_name] = cb_state
                 self.state.save_to_json(os.path.join(output_dir, TRAINER_STATE_NAME))
+                self.model.base_model.config.to_json_file(os.path.join(output_dir, "config.json"))
 
             if self.args.push_to_hub:
                 self._push_from_checkpoint(output_dir)
