@@ -15,7 +15,7 @@ import textwrap
 
 from torch.utils.data import DataLoader, Sampler
 
-from accelerate.utils import is_peft_model, set_seed, broadcast_object_list, gather, gather_object
+from accelerate.utils import is_peft_model, set_seed, gather, gather_object
 from transformers.utils import is_peft_available, is_datasets_available
 
 from transformers.trainer import (
@@ -41,12 +41,10 @@ from transformers import (
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 from trl.trainer.utils import selective_log_softmax
-from trl import GRPOTrainer
 from trl.trainer.grpo_config import GRPOConfig
 from trl.models import create_reference_model, prepare_deepspeed, unwrap_model_for_generation
 from trl.import_utils import is_deepspeed_available, is_liger_kernel_available, is_vllm_available, is_rich_available
 from trl.trainer.callbacks import SyncRefModelCallback
-from trl.extras.vllm_client import VLLMClient
 from trl.extras.profiling import profiling_decorator, profiling_context
 from trl.data_utils import maybe_apply_chat_template, is_conversational, apply_chat_template
 from trl.trainer.utils import (
@@ -74,9 +72,6 @@ if is_liger_kernel_available():
 
 if is_deepspeed_available():
     import deepspeed
-
-if is_vllm_available():
-    from vllm import LLM, SamplingParams
 
 
 class RepeatSampler(Sampler):
@@ -440,11 +435,25 @@ class QwenGRPOTrainer(Trainer):
         self.top_k = args.top_k
         self.min_p = args.min_p
         self.repetition_penalty = args.repetition_penalty
-        self.use_vllm = args.use_vllm
         self.use_liger_loss = args.use_liger_loss
         self.loss_type = args.loss_type
         self.scale_rewards = args.scale_rewards
         self.mask_truncated_completions = args.mask_truncated_completions
+
+
+        self.generation_config = GenerationConfig(
+            max_new_tokens=self.max_completion_length,
+            do_sample=True,
+            pad_token_id=processing_class.pad_token_id,
+            eos_token_id=processing_class.eos_token_id,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            top_k=self.top_k,
+            min_p=self.min_p,
+            repetition_penalty=self.repetition_penalty,
+            cache_implementation=args.cache_implementation,
+        )
+
 
         # Datasets
         self.shuffle_dataset = args.shuffle_dataset
@@ -563,41 +572,6 @@ class QwenGRPOTrainer(Trainer):
         # it's safer to set it in all cases.
         set_seed(args.seed, device_specific=True)
 
-        if self.use_vllm:
-            if not is_vllm_available():
-                raise ImportError(
-                    "vLLM is not available and `use_vllm` is set to True. Please install vLLM with "
-                    "`pip install vllm` to use it."
-                )
-
-            if self.accelerator.is_main_process:
-                self.vllm_client = VLLMClient(
-                    args.vllm_server_host, args.vllm_server_port, connection_timeout=args.vllm_server_timeout
-                )
-                self.vllm_client.init_communicator()
-
-            # vLLM specific sampling arguments
-            self.guided_decoding_regex = args.vllm_guided_decoding_regex
-
-            self._last_loaded_step = -1  # tag to avoid useless loading during grad accumulation
-
-            # When using vLLM, the main process is responsible for loading the model weights. This can cause process
-            # desynchronization and seems to lead to DeepSpeed hanging during initialization. To prevent this, we
-            # synchronize all processes after vLLM has been fully initialized.
-            self.accelerator.wait_for_everyone()
-        else:
-            self.generation_config = GenerationConfig(
-                max_new_tokens=self.max_completion_length,
-                do_sample=True,
-                pad_token_id=processing_class.pad_token_id,
-                eos_token_id=processing_class.eos_token_id,
-                temperature=self.temperature,
-                top_p=self.top_p,
-                top_k=self.top_k,
-                min_p=self.min_p,
-                repetition_penalty=self.repetition_penalty,
-                cache_implementation=args.cache_implementation,
-            )
 
         # Gradient accumulation requires scaled loss. Normally, loss scaling in the parent class depends on whether the
         # model accepts loss-related kwargs. Since we compute our own loss, this check is irrelevant. We set
@@ -840,60 +814,18 @@ class QwenGRPOTrainer(Trainer):
             prompt_ids = prompt_ids[:, -self.max_prompt_length :]
             prompt_mask = prompt_mask[:, -self.max_prompt_length :]
 
-        # Generate completions using either vLLM or regular generation
-        if self.use_vllm:
-            # First, have main process load weights if needed
-            if self.state.global_step != self._last_loaded_step:
-                self._move_model_to_vllm()
-                self._last_loaded_step = self.state.global_step
-
-            # Generate completions using vLLM: gather all prompts and use them in a single call in the main process
-            all_prompts_text = gather_object(prompts_text)
-            if self.accelerator.is_main_process:
-                # Since 'prompts' contains 'num_generations' duplicates, we first take unique prompts, and generate
-                # num_generations outputs for each one. This is faster than generating outputs for each duplicate
-                # prompt individually.
-                ordered_set_of_prompts = all_prompts_text[:: self.num_generations]
-                with profiling_context(self, "vLLM.generate"):
-                    completion_ids = self.vllm_client.generate(
-                        prompts=ordered_set_of_prompts,
-                        n=self.num_generations,
-                        repetition_penalty=self.repetition_penalty,
-                        temperature=self.temperature,
-                        top_p=self.top_p,
-                        top_k=-1 if self.top_k is None else self.top_k,
-                        min_p=0.0 if self.min_p is None else self.min_p,
-                        max_tokens=self.max_completion_length,
-                        guided_decoding_regex=self.guided_decoding_regex,
-                    )
-            else:
-                completion_ids = [None] * len(all_prompts_text)
-            # Broadcast the completions from the main process to all processes, ensuring each process receives its
-            # corresponding slice.
-            completion_ids = broadcast_object_list(completion_ids, from_process=0)
-            process_slice = slice(
-                self.accelerator.process_index * len(prompts),
-                (self.accelerator.process_index + 1) * len(prompts),
+        # Regular generation path
+        with unwrap_model_for_generation(
+            self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
+        ) as unwrapped_model:
+            prompt_completion_ids = unwrapped_model.generate(
+                **prompt_inputs, generation_config=self.generation_config
             )
-            completion_ids = completion_ids[process_slice]
 
-            # Pad the completions, and concatenate them with the prompts
-            completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
-            completion_ids = pad(completion_ids, padding_value=self.processing_class.pad_token_id)
-            prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-        else:
-            # Regular generation path
-            with unwrap_model_for_generation(
-                self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
-            ) as unwrapped_model:
-                prompt_completion_ids = unwrapped_model.generate(
-                    **prompt_inputs, generation_config=self.generation_config
-                )
-
-            # Compute prompt length and extract completion ids
-            prompt_length = prompt_ids.size(1)
-            prompt_ids = prompt_completion_ids[:, :prompt_length]
-            completion_ids = prompt_completion_ids[:, prompt_length:]
+        # Compute prompt length and extract completion ids
+        prompt_length = prompt_ids.size(1)
+        prompt_ids = prompt_completion_ids[:, :prompt_length]
+        completion_ids = prompt_completion_ids[:, prompt_length:]
 
         # Mask everything after the first EOS token
         is_eos = completion_ids == self.processing_class.eos_token_id
