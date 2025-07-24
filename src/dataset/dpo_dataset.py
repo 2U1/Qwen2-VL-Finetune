@@ -48,6 +48,7 @@ class DPODataset(Dataset):
         self.video_resized_w = data_args.video_resized_width
         self.video_resized_h = data_args.video_resized_height
         self.fps = data_args.fps
+        self.nframes = data_args.nframes
 
     def __len__(self):
         return len(self.list_data_dict)
@@ -94,7 +95,7 @@ class DPODataset(Dataset):
                 if not os.path.exists(video_file):
                     if not video_file.startswith("http"):
                         video_file = os.path.join(video_folder, video_file)
-                video_input, video_kwargs = get_video_info(video_file, self.video_min_pixel, self.video_max_pixel, self.video_resized_w, self.video_resized_h, self.data_args.fps)
+                video_input, video_kwargs = get_video_info(video_file, self.video_min_pixel, self.video_max_pixel, self.video_resized_w, self.video_resized_h, self.fps, self.nframes)
                 videos.append(video_input)
         else:
             grid_key = None

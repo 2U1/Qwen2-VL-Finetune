@@ -325,6 +325,8 @@ bash scripts/finetune_lora_vision.sh
 - `--image_resized_height` (int): Option for setting the height of the input image.
 - `--video_resized_width` (int): Option for setting the width of the input video.
 - `--video_resized_height` (int): Option for setting the height of the input video.
+- `--fps` (float): Frames per second for video data.
+- `--nframes` (int): Number of frames for video data.
 - `--lora_enable` (bool): Option for using LoRA.
 - `--vision_lora` (bool): Option for including `vision_tower` in LoRA module. `lora_enable` should be `True` to use this option.
 - `--use_dora` (bool): Option for using DoRA instead of LoRA. `lora_enable` should be `True` to use this option.
@@ -339,9 +341,6 @@ bash scripts/finetune_lora_vision.sh
 - `--lora_dropout` (float): LoRA dropout (default: 0.05).
 - `--logging_steps` (int): Logging steps (default: 1).
 - `--dataloader_num_workers` (int): Number of data loader workers (default: 4).
-- `--dpo_loss` (str): Loss type for dpo. (default: 'sigmoid')
-- `--precompute_ref_log_probs` (bool): Wheter to precompute the reference log probs (default: False)
-- `--beta` (float): The beta value for DPO (default: 0.1)
 
 **Note:** The learning rate of `vision_model` should be 10x ~ 5x smaller than the `language_model`.
 
@@ -350,6 +349,7 @@ bash scripts/finetune_lora_vision.sh
 ### Train with video dataset
 
 You can train the model using a video dataset. You can set LoRA configs and use for LoRA too.<br>
+**Note:** You could not set `fps` and `nframes` at the same time.
 
 ```bash
 bash scripts/finetune_video.sh
@@ -377,8 +377,10 @@ For example:
 Besides you could directly set the image/video height and width to control over the memory.
 
 ```
---resized_height 448
---resized_width 448
+--image_resized_width 448
+--image_resized_height 448
+--video_resized_width 448
+--video_resized_height 448
 ```
 
 These values will be rounded to the nearest multiple of 28.

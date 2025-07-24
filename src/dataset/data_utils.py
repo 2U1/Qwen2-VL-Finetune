@@ -94,16 +94,21 @@ def get_image_info(image_path, min_pixel, max_pixel, width, height):
 
     return image_input[0]
 
-def get_video_info(video_path, min_pixels, max_pixels, width, height, fps):
+def get_video_info(video_path, min_pixels, max_pixels, width, height, fps, nframes):
     # Using this because of process_vision_info function
     # Need to fix this in the future
+
     content = {
         "type": "video", 
         "video": video_path,
         "min_pixels": min_pixels,
         "max_pixels": max_pixels,
-        "fps": fps
     }
+
+    if nframes is not None:
+        content["nframes"] = nframes
+    else:
+        content["fps"] = fps
 
     if width is not None and height is not None:
         content["resized_width"] = width

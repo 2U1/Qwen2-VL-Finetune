@@ -47,7 +47,7 @@ def get_image_content(image_path, min_pixel, max_pixel, width, height):
 
     return content
 
-def get_video_content(video_path, min_pixels, max_pixels, width, height, fps):
+def get_video_content(video_path, min_pixels, max_pixels, width, height, fps, nframes):
     # Using this because of process_vision_info function
     # Need to fix this in the future
     content = {
@@ -55,8 +55,12 @@ def get_video_content(video_path, min_pixels, max_pixels, width, height, fps):
         "video": video_path,
         "min_pixels": min_pixels,
         "max_pixels": max_pixels,
-        "fps": fps
     }
+
+    if nframes is not None:
+        content["nframes"] = nframes
+    else:
+        content["fps"] = fps
 
     if width is not None and height is not None:
         content["resized_width"] = width
@@ -96,6 +100,7 @@ class GRPODataset(Dataset):
         self.video_resized_w = data_args.video_resized_width
         self.video_resized_h = data_args.video_resized_height
         self.fps = data_args.fps
+        self.nframes = data_args.nframes
 
     def __len__(self):
         return len(self.list_data_dict)
@@ -134,7 +139,7 @@ class GRPODataset(Dataset):
                 if not os.path.exists(video_file):
                     if not video_file.startswith("http"):
                         video_file = os.path.join(video_folder, video_file)
-                contents.append(get_video_content(video_file, self.video_min_pixel, self.video_max_pixel, self.video_resized_w, self.video_resized_h, self.data_args.fps))
+                contents.append(get_video_content(video_file, self.video_min_pixel, self.video_max_pixel, self.video_resized_w, self.video_resized_h, self.fps, self.nframes))
 
         conversations = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video))
 

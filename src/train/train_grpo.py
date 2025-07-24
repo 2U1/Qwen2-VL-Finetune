@@ -73,6 +73,9 @@ def train():
         # It monkey patches the forward to handle mixed modality inputs.
         replace_qwen_2_with_mixed_modality_forward(use_liger=False)
 
+    if data_args.nframes is not None and data_args.fps is not None:
+        raise ValueError("You cannot set both `nframes` and `fps` at the same time. Please set only one of them.")
+
     if training_args.lora_enable and not training_args.freeze_llm:
         raise ValueError("If `lora_enable` is True, `freeze_llm` must also be True.")
 

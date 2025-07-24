@@ -183,4 +183,5 @@ class DataArguments:
     image_resized_height: int = field(default=None)
     video_resized_width: int = field(default=None)
     video_resized_height: int = field(default=None)
-    fps: float = 1.0
+    fps: Optional[int] = field(default=None, metadata={"help": "Frames per second for video data."})
+    nframes: Optional[int] = field(default=None, metadata={"help": "Number of frames for video data."})

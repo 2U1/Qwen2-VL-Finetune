@@ -78,6 +78,8 @@ def train():
         if use_liger:
             apply_liger_kernel_to_qwen2_vl(fused_linear_cross_entropy=False)
     
+    if data_args.nframes is not None and data_args.fps is not None:
+        raise ValueError("You cannot set both `nframes` and `fps` at the same time. Please set only one of them.")
 
     if training_args.lora_enable and not training_args.freeze_llm:
         raise ValueError("If `lora_enable` is True, `freeze_llm` must also be True.")
