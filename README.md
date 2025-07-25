@@ -459,9 +459,9 @@ Most of the training arugments are same as SFT, but few other arguments are adde
 The [model](src/model/modeling_cls.py) is tailored for classification tasks, such as other SequenceClassification models.
 
 For the classification task, you need to prepare the dataset in a specific format. The dataset should be a JSON file where each entry contains an image and its corresponding label. The labels should be integers starting from 0.<br>
-You can set the text in the filed `prompt` to provide a questions and options for the classification task. Also if your dataset dose not contain the `prompt` field, the script will automatically use the `USER_MESSAGE` from the [cls_dataset.py](src/dataset/cls_dataset.py).
+You can set the text in the filed `prompt` to provide a questions and options for the classification task. Also if your dataset dose not contain the `prompt` field, the script will automatically use the `USER_MESSAGE` from the [cls_dataset.py](src/dataset/cls_dataset.py).<br>
+
 **Please see the example below for the dataset format.**<br>
-The dataset can contain single/multi-image or video data, and the model will be trained to classify the images/videos based on the provided labels.<br>
 
 <details>
 <summary>Example for Classification Dataset</summary>
@@ -482,6 +482,10 @@ The dataset can contain single/multi-image or video data, and the model will be 
 
 </details>
 
+<br>
+
+The dataset can contain **single/multi-image or video data**, and the model will be trained to classify the images/videos based on the provided labels.<br>
+
 For now, you can select loss from one of the following:
 
 - `cross_entropy`
@@ -490,7 +494,7 @@ For now, you can select loss from one of the following:
 - `class_balanced_focal_loss`
 
 Also you can set early stopping patience and threshold for the training.
-For example, you can set `--early_stopping_patience 5` and `--early_stopping_threshold 0.01` to stop the training if the validation loss does not improve for 5 epochs with a threshold of 0.01. It is based on the f1-score of the validation set.
+For example, you can set `--early_stopping_patience 5` and `--early_stopping_threshold 0.01` to stop the training if the validation loss does not improve for 5 epochs with a threshold of 0.01.
 
 Most of the training arugments are same as SFT, but few other arguments are added for classification training.
 
