@@ -123,3 +123,12 @@ def get_video_info(video_path, min_pixels, max_pixels, width, height, fps, nfram
     _, video_input, video_kwargs = process_vision_info(messages, return_video_kwargs=True)
 
     return video_input[0], video_kwargs
+
+def samples_per_class_from_ids(label_ids, num_classes):
+    
+    counts = torch.bincount(
+        torch.as_tensor(label_ids, dtype=torch.long),
+        minlength=num_classes
+    )
+    
+    return counts.tolist()

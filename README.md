@@ -13,6 +13,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/07/25] Updated Classification training script for experimental feature.
 - [2025/05/29] 🔥Supports GRPO training.
 - [2025/04/16] 🔥Supports DPO training.
 - [2025/03/04] Add Option for using liger kernel.
@@ -450,6 +451,71 @@ Most of the training arugments are same as SFT, but few other arguments are adde
 </details>
 
 **Note:** **Liger GRPO loss** and **vLLM back-end** are not yet supported. Both will be added soon.
+
+## Classification Finetuning
+
+### ⚠️This is an experimental feature.
+
+The [model](src/model/modeling_cls.py) is tailored for classification tasks, such as other SequenceClassification models.
+
+For the classification task, you need to prepare the dataset in a specific format. The dataset should be a JSON file where each entry contains an image and its corresponding label. The labels should be integers starting from 0.<br>
+You can set the text in the filed `prompt` to provide a questions and options for the classification task. Also if your dataset dose not contain the `prompt` field, the script will automatically use the `USER_MESSAGE` from the [cls_dataset.py](src/dataset/cls_dataset.py).
+**Please see the example below for the dataset format.**<br>
+The dataset can contain single/multi-image or video data, and the model will be trained to classify the images/videos based on the provided labels.<br>
+
+<details>
+<summary>Example for Classification Dataset</summary>
+
+```json
+[
+  {
+    "id": "06bc8a17-bb1c-4007-8c08-92c41e2628b2",
+    "image": "image_2.jpg",
+    "prompt": "Question: What is in the image? \n Options: \n 1. A train \n 2. A bus \n 3. A car \n 4. A bicycle",
+    "label": "3",
+  }
+  ...
+]
+```
+
+**Note:** You should set the `CLASS_2_ID` variable in the [cls_dataset.py](src/dataset/cls_dataset.py).
+
+</details>
+
+For now, you can select loss from one of the following:
+
+- `cross_entropy`
+- `focal_loss`
+- `class_balanced_cross_entropy`
+- `class_balanced_focal_loss`
+
+Also you can set early stopping patience and threshold for the training.
+For example, you can set `--early_stopping_patience 5` and `--early_stopping_threshold 0.01` to stop the training if the validation loss does not improve for 5 epochs with a threshold of 0.01. It is based on the f1-score of the validation set.
+
+Most of the training arugments are same as SFT, but few other arguments are added for classification training.
+
+<details>
+<summary>Training arguments</summary>
+
+- `--loss_type` (str): Loss type for classification (default: 'cross_entropy').
+- `--focal_alpha` (str): Focal Loss alpha value. If None use CrossEntropyLoss. ex '1.0,7.5' (default: None).
+- `--focal_gamma` (float): Focal Loss gamma value. (default: 0.0)
+- `--num_labels` (int): Number of labels for classification
+- `--class_balanced_beta` (float): Class Balanced beta value. (default: 0.999)
+- `--early_stopping_patience` (int): Early stopping patience (default: 0)
+- `--early_stopping_threshold` (float): Early stopping threshold (default: 0.01)
+
+</details>
+
+You can run the training script using the following command:
+
+```bash
+bash scripts/finetune_cls.sh
+```
+
+#### Experimental Features
+
+- Sampler for the dataet. The trainer scripts supports the sampler for the dataset. You could make your own sampler.
 
 ## Inference
 
