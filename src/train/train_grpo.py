@@ -10,6 +10,7 @@ from src.dataset import make_grpo_data_module
 from src.params import DataArguments, ModelArguments, GRPOArguments
 from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 from monkey_patch_forward import replace_qwen2_5_with_mixed_modality_forward, replace_qwen_2_with_mixed_modality_forward
+from monkey_patch_vision import replace_qwen2_5_vision
 from src.utils import  load_reward_funcs
 
 local_rank = None
@@ -67,6 +68,8 @@ def train():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     training_args.use_liger_loss = False
     if "Qwen2.5" in model_args.model_id:
+        # monkey patch the vision model
+        replace_qwen2_5_vision()
         # It monkey patches the forward to handle mixed modality inputs.
         replace_qwen2_5_with_mixed_modality_forward(use_liger=False)
     else:
