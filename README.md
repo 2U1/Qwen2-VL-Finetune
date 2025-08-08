@@ -13,6 +13,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/08/08] 🔥Monkey patch forward function for using much less memory and speedups!
 - [2025/07/25] Updated Classification training script for experimental feature.
 - [2025/05/29] 🔥Supports GRPO training.
 - [2025/04/16] 🔥Supports DPO training.

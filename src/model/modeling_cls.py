@@ -188,14 +188,22 @@ class Qwen2VLForSequenceClassification(Qwen2VLPreTrainedModel):
                     raise ValueError(
                         f"Image features and image tokens do not match: tokens: {n_image_tokens}, features {n_image_features}"
                     )
-                image_mask = (
-                    (input_ids == self.config.image_token_id)
-                    .unsqueeze(-1)
-                    .expand_as(inputs_embeds)
-                    .to(inputs_embeds.device)
-                )
-                image_embeds = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
-                inputs_embeds = inputs_embeds.masked_scatter(image_mask, image_embeds)
+                
+                mask_img = (input_ids == self.config.image_token_id)
+
+                if mask_img.any():
+                    B, T = input_ids.shape
+                    H = inputs_embeds.size(-1)
+
+                    b_idx, t_idx = mask_img.nonzero(as_tuple=True)
+                    row_idx = (b_idx * T + t_idx).to(inputs_embeds.device)
+
+                    # 소스 임베딩 정렬
+                    img = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
+
+                    flat = inputs_embeds.reshape(-1, H).clone()
+                    flat.index_copy_(0, row_idx, img)
+                    inputs_embeds = flat.view(B, T, H)
 
             if pixel_values_videos is not None:
                 pixel_values_videos = pixel_values_videos.type(self.visual.get_dtype())
@@ -206,14 +214,20 @@ class Qwen2VLForSequenceClassification(Qwen2VLPreTrainedModel):
                     raise ValueError(
                         f"Video features and video tokens do not match: tokens: {n_video_tokens}, features {n_video_features}"
                     )
-                video_mask = (
-                    (input_ids == self.config.video_token_id)
-                    .unsqueeze(-1)
-                    .expand_as(inputs_embeds)
-                    .to(inputs_embeds.device)
-                )
-                video_embeds = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
-                inputs_embeds = inputs_embeds.masked_scatter(video_mask, video_embeds)
+                mask_vid = (input_ids == self.config.video_token_id)
+
+                if mask_vid.any():
+                    B, T = input_ids.shape
+                    H = inputs_embeds.size(-1)
+
+                    b_idx, t_idx = mask_vid.nonzero(as_tuple=True)         # [N]
+                    row_idx = (b_idx * T + t_idx).to(inputs_embeds.device) # [N]
+
+                    vid = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)  # [N, H]
+
+                    flat = inputs_embeds.reshape(-1, H).clone()
+                    flat.index_copy_(0, row_idx, vid)
+                    inputs_embeds = flat.view(B, T, H)
 
             if attention_mask is not None:
                 attention_mask = attention_mask.to(inputs_embeds.device)
@@ -499,14 +513,21 @@ class Qwen2_5_VLForSequenceClassification(Qwen2_5_VLPreTrainedModel):
                         f"Image features and image tokens do not match: tokens: {n_image_tokens}, features {n_image_features}"
                     )
 
-                mask = input_ids == self.config.image_token_id
-                mask_unsqueezed = mask.unsqueeze(-1)
-                mask_expanded = mask_unsqueezed.expand_as(inputs_embeds)
-                image_mask = mask_expanded.to(inputs_embeds.device)
+                mask_img = (input_ids == self.config.image_token_id)
 
-                image_embeds = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
-                inputs_embeds = inputs_embeds.masked_scatter(image_mask, image_embeds)
+                if mask_img.any():
+                    B, T = input_ids.shape
+                    H = inputs_embeds.size(-1)
 
+                    b_idx, t_idx = mask_img.nonzero(as_tuple=True)
+                    row_idx = (b_idx * T + t_idx).to(inputs_embeds.device)
+
+                    img = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
+
+                    flat = inputs_embeds.reshape(-1, H).clone()
+                    flat.index_copy_(0, row_idx, img)
+                    inputs_embeds = flat.view(B, T, H)
+            
             if pixel_values_videos is not None:
                 pixel_values_videos = pixel_values_videos.type(self.visual.dtype)
                 video_embeds = self.visual(pixel_values_videos, grid_thw=video_grid_thw)
@@ -517,16 +538,22 @@ class Qwen2_5_VLForSequenceClassification(Qwen2_5_VLPreTrainedModel):
                         f"Video features and video tokens do not match: tokens: {n_video_tokens}, features {n_video_features}"
                     )
 
-                mask = input_ids == self.config.video_token_id
-                mask_unsqueezed = mask.unsqueeze(-1)
-                mask_expanded = mask_unsqueezed.expand_as(inputs_embeds)
-                video_mask = mask_expanded.to(inputs_embeds.device)
+                mask_vid = (input_ids == self.config.video_token_id)
 
-                video_embeds = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
-                inputs_embeds = inputs_embeds.masked_scatter(video_mask, video_embeds)
+                if mask_vid.any():
+                    B, T = input_ids.shape
+                    H = inputs_embeds.size(-1)
 
-            if attention_mask is not None:
-                attention_mask = attention_mask.to(inputs_embeds.device)
+                    b_idx, t_idx = mask_vid.nonzero(as_tuple=True)         # [N]
+                    row_idx = (b_idx * T + t_idx).to(inputs_embeds.device) # [N]
+
+                    vid = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)  # [N, H]
+
+                    flat = inputs_embeds.reshape(-1, H).clone()
+                    flat.index_copy_(0, row_idx, vid)
+                    inputs_embeds = flat.view(B, T, H)
+                if attention_mask is not None:
+                    attention_mask = attention_mask.to(inputs_embeds.device)
 
         if position_ids is None and (attention_mask is None or attention_mask.ndim == 2):
             position_ids, _ = self.get_rope_index(
