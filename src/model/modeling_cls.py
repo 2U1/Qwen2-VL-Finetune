@@ -153,11 +153,8 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
         hidden_states = hidden_states.index_select(0, window_index_dev).reshape(seq_len, dim)
         rotary_pos_emb = rotary_pos_emb.index_select(0, window_index_dev).reshape(seq_len, -1)
 
-        cos = rotary_pos_emb.cos()
-        sin = rotary_pos_emb.sin()
-        cos = torch.repeat_interleave(cos, 2, dim=-1)
-        sin = torch.repeat_interleave(sin, 2, dim=-1)
-        position_embeddings = (cos, sin)
+        emb = torch.cat((rotary_pos_emb, rotary_pos_emb), dim=-1)
+        position_embeddings = (emb.cos(), emb.sin())
 
         cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
             dim=0,
