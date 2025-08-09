@@ -85,7 +85,7 @@ def qwen_2_mixed_modality_forward_with_flce(
 
                 img = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
 
-                flat = inputs_embeds.reshape(-1, H).clone()
+                flat = inputs_embeds.view(-1, H)
                 flat.index_copy_(0, row_idx, img)
                 inputs_embeds = flat.view(B, T, H)
 
@@ -109,10 +109,9 @@ def qwen_2_mixed_modality_forward_with_flce(
 
                 vid = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)  # [N, H]
 
-                flat = inputs_embeds.reshape(-1, H).clone()
+                flat = inputs_embeds.view(-1, H)
                 flat.index_copy_(0, row_idx, vid)
                 inputs_embeds = flat.view(B, T, H)
-
         if attention_mask is not None:
             attention_mask = attention_mask.to(inputs_embeds.device)
 
@@ -254,7 +253,7 @@ def qwen_2_mixed_modality_forward(
 
                 img = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
 
-                flat = inputs_embeds.reshape(-1, H).clone()
+                flat = inputs_embeds.view(-1, H)
                 flat.index_copy_(0, row_idx, img)
                 inputs_embeds = flat.view(B, T, H)
 
@@ -278,7 +277,7 @@ def qwen_2_mixed_modality_forward(
 
                 vid = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)  # [N, H]
 
-                flat = inputs_embeds.reshape(-1, H).clone()
+                flat = inputs_embeds.view(-1, H) 
                 flat.index_copy_(0, row_idx, vid)
                 inputs_embeds = flat.view(B, T, H)
 
@@ -428,7 +427,7 @@ def qwen2_5_mixed_modality_forward_with_flce(
             row_idx = (b_idx * T + t_idx).to(inputs_embeds.device)
 
             vid = video_embeds.to(inputs_embeds.device, dtype=inputs_embeds.dtype)
-            flat = inputs_embeds.reshape(-1, H).clone()
+            flat = inputs_embeds.view(-1, H)
             flat.index_copy_(0, row_idx, vid)
             inputs_embeds = flat.view(B, T, H)
 
@@ -581,7 +580,7 @@ def qwen2_5_mixed_modality_forward(
                 row_idx = (b_idx * T + t_idx).to(inputs_embeds.device)
 
                 img = image_embeds.to(inputs_embeds.device, dtype=inputs_embeds.dtype)
-                flat = inputs_embeds.reshape(-1, H).clone()
+                flat = inputs_embeds.view(-1, H)
                 flat.index_copy_(0, row_idx, img)
                 inputs_embeds = flat.view(B, T, H)
 
@@ -602,10 +601,10 @@ def qwen2_5_mixed_modality_forward(
                 row_idx = (b_idx * T + t_idx).to(inputs_embeds.device)
 
                 vid = video_embeds.to(inputs_embeds.device, dtype=inputs_embeds.dtype)
-                flat = inputs_embeds.reshape(-1, H).clone()
+                flat = inputs_embeds.view(-1, H) 
                 flat.index_copy_(0, row_idx, vid)
                 inputs_embeds = flat.view(B, T, H)
-        
+    
         if attention_mask is not None:
             attention_mask = attention_mask.to(inputs_embeds.device)
 
