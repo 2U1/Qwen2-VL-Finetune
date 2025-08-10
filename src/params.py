@@ -250,6 +250,12 @@ class DataArguments:
     data_path: str = field(
         default=None, metadata={"help": "Path to the training data."}
     )
+    eval_path: str= field(
+        default=None, metadata={"help": "Path to the evaluation data."}
+    )
+    eval_image_folder: Optional[str] = field(
+        default=None, metadata={"help": "Path to the evaluation image data."}
+    )
     lazy_preprocess: bool = False
     image_folder: Optional[str] = field(default=None)
     image_min_pixels: Optional[int] = field(default=3136)
