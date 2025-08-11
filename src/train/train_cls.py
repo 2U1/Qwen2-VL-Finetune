@@ -140,7 +140,7 @@ def train():
     if training_args.bits in [4,8]:
         model.config.torch_dtype = (torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
         from peft import prepare_model_for_kbit_training
-        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing, gradient_checkpointing_kwargs={"use_reentrant": False})
+        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing, gradient_checkpointing_kwargs={"use_reentrant": True})
     
     if training_args.gradient_checkpointing:
         model.enable_input_require_grads()
@@ -152,7 +152,7 @@ def train():
 
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
             
-        training_args.gradient_checkpointing_kwargs = {"use_reentrant": False}
+        training_args.gradient_checkpointing_kwargs = {"use_reentrant": True}
 
     if training_args.lora_enable:
         lora_namespan_exclude = training_args.lora_namespan_exclude
