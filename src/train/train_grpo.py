@@ -58,6 +58,18 @@ def configure_llm(model, training_args):
     llm_params = model.model.parameters()
     set_requires_grad(llm_params, not training_args.freeze_llm)
 
+def unfreeze_topk_layers(model, k_llm: int = 0, k_vis: int = 0):
+    if k_llm and hasattr(model, "model") and hasattr(model.model, "layers"):
+        for layer in model.model.layers[-k_llm:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+
+    if k_vis and hasattr(model, "visual") and hasattr(model.visual, "blocks"):
+        for blk in model.visual.blocks[-k_vis:]:
+            for p in blk.parameters():
+                p.requires_grad = True
+
+
 
 def train():
     global local_rank
@@ -137,6 +149,12 @@ def train():
     model_to_configure = model
     configure_llm(model_to_configure, training_args)
     configure_vision_tower(model_to_configure, training_args, compute_dtype, training_args.device)
+
+    unfreeze_topk_layers(
+        model_to_configure,
+        k_llm=getattr(training_args, "unfreeze_topk_llm", 0),
+        k_vis=getattr(training_args, "unfreeze_topk_vision", 0),
+    )
 
     if training_args.bits in [4,8]:
         model.config.torch_dtype = (torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))

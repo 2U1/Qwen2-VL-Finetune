@@ -13,6 +13,8 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/08/21] Add option for using 2-layer mlp for classification.
+- [2025/08/21] Add option for unfreeze only few layers for llm and vision tower.
 - [2025/08/08] 🔥Monkey patch Qwen2.5-VL's window attention and forward for using less memory and speedups.
 - [2025/07/25] Updated Classification training script for experimental feature.
 - [2025/05/29] 🔥Supports GRPO training.
@@ -66,7 +68,8 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 - Deepspeed
 - LoRA/QLoRA
 - Full-finetuning
-- Enable finetuning `vision_model` while using LoRA.
+- Enable finetuning `vision_model` while using LoRA
+- Unfreeze only top-k layer
 - Disable/enable Flash Attention 2
 - Multi-image and video training
 - Training optimized with liger kernel
@@ -277,6 +280,8 @@ To run the training script, use the following command:
 
 ### Full Finetuning
 
+**Note:** If you want to use `unfreeze_topk_llm` or `unfreeze_topk_vision` you should set `-freeze_llm` or `--freeze_vision_tower` to `true`.
+
 ```bash
 bash scripts/finetune.sh
 ```
@@ -329,6 +334,8 @@ bash scripts/finetune_lora_vision.sh
 - `--video_resized_height` (int): Option for setting the height of the input video.
 - `--fps` (float): Frames per second for video data.
 - `--nframes` (int): Number of frames for video data.
+- `--unfreeze_topk_llm` (int): Number of top layers to unfreeze in the language model.
+- `--unfreeze_topk_vision` (int): Number of top layers to unfreeze in the vision model.
 - `--lora_enable` (bool): Option for using LoRA.
 - `--vision_lora` (bool): Option for including `vision_tower` in LoRA module. `lora_enable` should be `True` to use this option.
 - `--use_dora` (bool): Option for using DoRA instead of LoRA. `lora_enable` should be `True` to use this option.
@@ -497,7 +504,9 @@ For now, you can select loss from one of the following:
 Also you can set early stopping patience and threshold for the training.
 For example, you can set `--early_stopping_patience 5` and `--early_stopping_threshold 0.01` to stop the training if the validation loss does not improve for 5 epochs with a threshold of 0.01.
 
-Most of the training arugments are same as SFT, but few other arguments are added for classification training.
+Most of the training arugments are same as SFT, but few other arguments are added for classification training.<br><br>
+
+**Tip:** In models like the Qwen family, which have strong context embeddings, even a shallow nonlinearity (a 1-layer MLP) can often improve separability in the tail. This works by introducing a bit of curvature that a purely linear head cannot provide.
 
 <details>
 <summary>Training arguments</summary>
@@ -509,6 +518,8 @@ Most of the training arugments are same as SFT, but few other arguments are adde
 - `--class_balanced_beta` (float): Class Balanced beta value. (default: 0.999)
 - `--early_stopping_patience` (int): Early stopping patience (default: 0)
 - `--early_stopping_threshold` (float): Early stopping threshold (default: 0.01)
+- `--mlp_head_dim` (int): Dimension of the MLP head (default: 0)
+- `--mlp_head_dropout` (float): Dropout rate for the MLP head (default: 0.0)
 
 </details>
 

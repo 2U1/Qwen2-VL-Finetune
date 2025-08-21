@@ -23,6 +23,10 @@ class CLSArguments(HFTrainingArguments):
     freeze_llm: bool = field(default=False)
     freeze_merger: bool = field(default=False)
     disable_flash_attn2: bool = field(default=False)
+    unfreeze_topk_llm: int = 0
+    unfreeze_topk_vision: int = 0
+    mlp_head_dim: Optional[int] = field(default=0)
+    mlp_head_dropout: Optional[float] = field(default=0.0)
     
     loss_type : str = field(
         default="cross_entropy",
@@ -100,6 +104,8 @@ class TrainingArguments(HFTrainingArguments):
     freeze_llm: bool = field(default=False)
     freeze_merger: bool = field(default=False)
     disable_flash_attn2: bool = field(default=False)
+    unfreeze_topk_llm: int = 0
+    unfreeze_topk_vision: int = 0
 
     max_seq_length: int = field(
         default=32768, # This is the default value of the qwen2-vl model
@@ -147,6 +153,8 @@ class DPOArguments(DPOConfigTRL):
     freeze_llm: bool = field(default=False)
     freeze_merger: bool = field(default=False)
     disable_flash_attn2: bool = field(default=False)
+    unfreeze_topk_llm: int = 0
+    unfreeze_topk_vision: int = 0
 
     max_seq_length: int = field(
         default=32768, # This is the default value of the qwen2-vl model
@@ -205,6 +213,9 @@ class GRPOArguments(GRPOConfigTRL):
     freeze_llm: bool = field(default=False)
     freeze_merger: bool = field(default=False)
     disable_flash_attn2: bool = field(default=False)
+    unfreeze_topk_llm: int = 0
+    unfreeze_topk_vision: int = 0
+
     double_quant: bool = field(
         default=True,
         metadata={"help": "Compress the quantization statistics through double quantization."}

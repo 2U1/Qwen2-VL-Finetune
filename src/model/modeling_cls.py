@@ -185,9 +185,28 @@ class Qwen2VLForSequenceClassification(Qwen2VLPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
+        bridge_h = config.mlp_head_hidden_dim
+        bridge_p = config.mlp_head_dropout
+        
         self.visual = Qwen2VisionTransformerPretrainedModel._from_config(config.vision_config)
         self.model = Qwen2VLModel(config)
-        self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
+        
+        self.bridge = None
+        in_dim = config.hidden_size
+        if bridge_h > 0:
+            self.bridge = nn.Sequential(
+                nn.Linear(config.hidden_size, bridge_h),
+                nn.GELU(),
+                nn.Dropout(bridge_p),
+            )
+            nn.init.xavier_uniform_(self.bridge[0].weight, gain=1.0)
+            nn.init.zeros_(self.bridge[0].bias)
+            in_dim = bridge_h
+            
+        self.score = nn.Linear(in_dim, self.num_labels, bias=False)
+        nn.init.normal_(self.score.weight, std=1e-3)
+
+        self.loss_fn = None
         
         self.post_init()
 
@@ -410,7 +429,7 @@ class Qwen2VLForSequenceClassification(Qwen2VLPreTrainedModel):
         )
 
         hidden_states = outputs.last_hidden_state
-        logits = self.score(hidden_states)
+        feats = self.bridge(hidden_states) if self.bridge is not None else hidden_states
 
         if input_ids is not None:
             batch_size, _ = input_ids.shape[:2]
@@ -423,24 +442,25 @@ class Qwen2VLForSequenceClassification(Qwen2VLPreTrainedModel):
             )
 
         if self.config.pad_token_id is None:
-            sequence_lengths = torch.full((batch_size,), -1, device=logits.device)
+            sequence_lengths = torch.full((batch_size,), -1, device=feats.device)
         else:
             if input_ids is not None:
-                non_pad_mask = (input_ids != self.config.pad_token_id).to(logits.device)
+                non_pad_mask = (input_ids != self.config.pad_token_id).to(feats.device)
 
                 token_indices = torch.arange(
-                    input_ids.size(-1), device=logits.device, dtype=torch.long
+                    input_ids.size(-1), device=feats.device, dtype=torch.long
                 )
                 sequence_lengths = (token_indices * non_pad_mask).argmax(dim=-1)
             else:
-                sequence_lengths = torch.full((batch_size,), -1, device=logits.device)
+                sequence_lengths = torch.full((batch_size,), -1, device=feats.device)
 
-        pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
+        pooled_feats = feats[torch.arange(batch_size, device=feats.device), sequence_lengths]
+        pooled_logits = self.score(pooled_feats)
 
         loss: Optional[torch.Tensor] = None
 
         if labels is not None:
-            labels = labels.to(logits.device)
+            labels = labels.to(pooled_logits.device)
             if self.config.problem_type is None:
                 # automatically infer
                 if self.num_labels == 1:
@@ -466,10 +486,6 @@ class Qwen2VLForSequenceClassification(Qwen2VLPreTrainedModel):
                 loss_fct = BCEWithLogitsLoss()
                 loss = loss_fct(pooled_logits, labels)
 
-            # if self.training and torch.distributed.get_rank() == 0:   # rank0 만 출력
-            #     print(f"[step {cache_position.item() if cache_position is not None else '-'}]"
-            #         f" use loss ▶ {loss_fct.__class__.__name__}")
-
         return SequenceClassifierOutputWithPast(
             loss=loss,
             logits=pooled_logits,
@@ -486,9 +502,25 @@ class Qwen2_5_VLForSequenceClassification(Qwen2_5_VLPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
+        bridge_h = config.mlp_head_hidden_dim
+        bridge_p = config.mlp_head_dropout
         self.visual = Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow._from_config(config.vision_config)
         self.model = Qwen2_5_VLModel(config)
-        self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
+        
+        self.bridge = None
+        in_dim = config.hidden_size
+        if bridge_h > 0:
+            self.bridge = nn.Sequential(
+                nn.Linear(config.hidden_size, bridge_h),
+                nn.GELU(),
+                nn.Dropout(bridge_p),
+            )
+            nn.init.xavier_uniform_(self.bridge[0].weight, gain=1.0)
+            nn.init.zeros_(self.bridge[0].bias)
+            in_dim = bridge_h
+            
+        self.score = nn.Linear(in_dim, self.num_labels, bias=False)
+        nn.init.normal_(self.score.weight, std=1e-3)
 
         self.loss_fn = None
         
@@ -737,7 +769,8 @@ class Qwen2_5_VLForSequenceClassification(Qwen2_5_VLPreTrainedModel):
         )
 
         hidden_states = outputs.last_hidden_state
-        logits = self.score(hidden_states)
+        feats = self.bridge(hidden_states) if self.bridge is not None else hidden_states
+
 
         if input_ids is not None:
             batch_size, _ = input_ids.shape[:2]
@@ -750,19 +783,21 @@ class Qwen2_5_VLForSequenceClassification(Qwen2_5_VLPreTrainedModel):
             )
 
         if self.config.pad_token_id is None:
-            sequence_lengths = torch.full((batch_size,), -1, device=logits.device)
+            sequence_lengths = torch.full((batch_size,), -1, device=feats.device)
         else:
             if input_ids is not None:
-                non_pad_mask = (input_ids != self.config.pad_token_id).to(logits.device)
+                non_pad_mask = (input_ids != self.config.pad_token_id).to(feats.device)
 
                 token_indices = torch.arange(
-                    input_ids.size(-1), device=logits.device, dtype=torch.long
+                    input_ids.size(-1), device=feats.device, dtype=torch.long
                 )
                 sequence_lengths = (token_indices * non_pad_mask).argmax(dim=-1)
             else:
-                sequence_lengths = torch.full((batch_size,), -1, device=logits.device)
-
-        pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
+                sequence_lengths = torch.full((batch_size,), -1, device=feats.device)
+        
+        
+        pooled_feats = feats[torch.arange(batch_size, device=feats.device), sequence_lengths]
+        pooled_logits = self.score(pooled_feats)
 
         loss: Optional[torch.Tensor] = None
         

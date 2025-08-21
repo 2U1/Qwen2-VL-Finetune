@@ -2,7 +2,7 @@ import os
 import torch
 from peft import LoraConfig, get_peft_model
 import ast
-from transformers import AutoProcessor, BitsAndBytesConfig, HfArgumentParser
+from transformers import AutoProcessor, BitsAndBytesConfig, HfArgumentParser, AutoConfig
 from src.trainer import QwenCLSTrainer
 from src.model import Qwen2VLForSequenceClassification, Qwen2_5_VLForSequenceClassification
 from src.dataset import make_classification_data_module
@@ -66,6 +66,17 @@ def configure_llm(model, training_args):
     llm_params = model.model.parameters()
     set_requires_grad(llm_params, not training_args.freeze_llm)
 
+def unfreeze_topk_layers(model, k_llm: int = 0, k_vis: int = 0):
+    if k_llm and hasattr(model, "model") and hasattr(model.model, "layers"):
+        for layer in model.model.layers[-k_llm:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+
+    if k_vis and hasattr(model, "visual") and hasattr(model.visual, "blocks"):
+        for blk in model.visual.blocks[-k_vis:]:
+            for p in blk.parameters():
+                p.requires_grad = True
+
 def train():
     global local_rank
 
@@ -96,7 +107,6 @@ def train():
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
     data_args.compute_dtype = compute_dtype
-    data_args.sampler_pos_ratio = training_args.sampler_pos_ratio
 
     bnb_model_from_pretrained_args = {}
     if training_args.bits in [4,8]:
@@ -115,19 +125,35 @@ def train():
         ))
 
     if "Qwen2.5" in model_args.model_id:
+        cfg = AutoConfig.from_pretrained(model_args.model_id)
+        cfg.mlp_head_hidden_dim = training_args.mlp_head_dim
+        cfg.mlp_head_dropout = training_args.mlp_head_dropout
+        cfg.use_margin_head = training_args.use_margin_head
+        cfg.margin_type = training_args.margin_type
+        cfg.margin_m = training_args.margin_m
+        cfg.margin_s = training_args.margin_s
+        cfg.num_labels = training_args.num_labels
+        
         model = Qwen2_5_VLForSequenceClassification.from_pretrained(
             model_args.model_id,
             torch_dtype=compute_dtype,
             attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa",
-            num_labels=training_args.num_labels,
             **bnb_model_from_pretrained_args
         )
     else:
+        cfg = AutoConfig.from_pretrained(model_args.model_id)
+        cfg.mlp_head_hidden_dim = training_args.mlp_head_dim
+        cfg.mlp_head_dropout = training_args.mlp_head_dropout
+        cfg.use_margin_head = training_args.use_margin_head
+        cfg.margin_type = training_args.margin_type
+        cfg.margin_m = training_args.margin_m
+        cfg.margin_s = training_args.margin_s
+        cfg.num_labels = training_args.num_labels
+        
         model = Qwen2VLForSequenceClassification.from_pretrained(
             model_args.model_id,
             torch_dtype=compute_dtype,
             attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa",
-            num_labels=training_args.num_labels,
             **bnb_model_from_pretrained_args
         )
 
@@ -136,6 +162,12 @@ def train():
     model_to_configure = model
     configure_llm(model_to_configure, training_args)
     configure_vision_tower(model_to_configure, training_args, compute_dtype, training_args.device)
+
+    unfreeze_topk_layers(
+        model_to_configure,
+        k_llm=getattr(training_args, "unfreeze_topk_llm", 0),
+        k_vis=getattr(training_args, "unfreeze_topk_vision", 0),
+    )
 
     if training_args.bits in [4,8]:
         model.config.torch_dtype = (torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
