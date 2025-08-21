@@ -136,6 +136,7 @@ def train():
         
         model = Qwen2_5_VLForSequenceClassification.from_pretrained(
             model_args.model_id,
+            config=cfg,
             torch_dtype=compute_dtype,
             attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa",
             **bnb_model_from_pretrained_args
@@ -152,6 +153,7 @@ def train():
         
         model = Qwen2VLForSequenceClassification.from_pretrained(
             model_args.model_id,
+            config=cfg,
             torch_dtype=compute_dtype,
             attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa",
             **bnb_model_from_pretrained_args
