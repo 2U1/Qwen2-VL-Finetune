@@ -16,6 +16,7 @@ from transformers.trainer import (
 from transformers.trainer_utils import seed_worker
 from transformers.utils import is_datasets_available
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 import datasets
 
 from src.train.train_utils import get_peft_state_non_lora_maybe_zero_3
@@ -73,14 +74,21 @@ class QwenCLSTrainer(Trainer):
             "pin_memory": self.args.dataloader_pin_memory,
             "persistent_workers": self.args.dataloader_persistent_workers,
         }
-
+        
+        sampler = self._custom_sampler if self._custom_sampler is not None else self._get_train_sampler()
         if not isinstance(train_dataset, torch.utils.data.IterableDataset):
-            dataloader_params["sampler"] = self._custom_sampler if self._custom_sampler is not None else self._get_train_sampler()
+            dataloader_params["sampler"] = sampler
             dataloader_params["drop_last"] = self.args.dataloader_drop_last
             dataloader_params["worker_init_fn"] = seed_worker
             dataloader_params["prefetch_factor"] = self.args.dataloader_prefetch_factor
 
-        return self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
+        dl = DataLoader(train_dataset, **dataloader_params)
+
+        if isinstance(sampler, DistributedSampler):
+            return dl
+
+        return self.accelerator.prepare(dl)
+
 
     def create_optimizer(self):
         """

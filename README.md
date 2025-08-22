@@ -531,7 +531,7 @@ bash scripts/finetune_cls.sh
 
 #### Experimental Features
 
-- Sampler for the dataet. The trainer scripts supports the sampler for the dataset. You could make your own sampler.
+- Sampler for the dataset. The trainer scripts supports the sampler for the dataset. You could make your own sampler with inherting `DistributedSampler`.
 
 ## Inference
 
