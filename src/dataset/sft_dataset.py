@@ -66,7 +66,7 @@ class SupervisedDataset(Dataset):
             videos = None
             grid_key = "image_grid_thw"
             pixel_key = "pixel_values"
-            
+
             image_files = sources["image"]
             image_folder = self.data_args.image_folder
 
@@ -74,7 +74,7 @@ class SupervisedDataset(Dataset):
                 image_files = [image_files]
 
             images = []
-            
+
             for image_file in image_files:
                 if not os.path.exists(image_file):
                     if not image_file.startswith("http"):
@@ -108,18 +108,20 @@ class SupervisedDataset(Dataset):
 
         sources = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video))
 
-        all_input_ids = [] 
+        all_input_ids = []
         all_labels = []
         all_pixel_values = []
         all_image_grid_thw = []
         all_second_gird = []
 
+        image_curr_count = 0
+        video_curr_count = 0
         # Qwen2-VL uses a default system message so I've added this.
         if len(SYSTEM_MESSAGE) > 0:
             system_message = f"{DEFAULT_IM_START_TOKEN}system\n{SYSTEM_MESSAGE}{DEFAULT_IM_END_TOKEN}\n"
             system_message_input_ids = processor.tokenizer(system_message, add_special_tokens=False, return_tensors='pt')['input_ids']
-            system_labels = torch.full_like(system_message_input_ids, IGNORE_INDEX) 
-            
+            system_labels = torch.full_like(system_message_input_ids, IGNORE_INDEX)
+
             all_input_ids.append(system_message_input_ids.squeeze(0))
             all_labels.append(system_labels.squeeze(0))
 
@@ -129,22 +131,30 @@ class SupervisedDataset(Dataset):
 
             user_input = f"{DEFAULT_IM_START_TOKEN}{user_input['role']}\n{user_input['content']}{DEFAULT_IM_END_TOKEN}\n{DEFAULT_IM_START_TOKEN}{gpt_response['role']}\n"
             gpt_response = f"{gpt_response['content']}{DEFAULT_IM_END_TOKEN}\n"
-            
+
             if DEFAULT_IMAGE_TOKEN in user_input:
-                inputs = processor(text=[user_input], images=images, videos=videos, padding=False, do_resize=False, return_tensors='pt')
+                num_images = user_input.count(DEFAULT_IMAGE_TOKEN)
+                # Slice the images list to get the images for the current turn.
+                images_for_this_turn = images[image_curr_count : image_curr_count + num_images]
+                inputs = processor(text=[user_input], images=images_for_this_turn, videos=videos, padding=False, do_resize=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
                 all_pixel_values.append(inputs[pixel_key])
                 all_image_grid_thw.append(inputs[grid_key])
-            
+                image_curr_count += num_images
+
             elif DEFAULT_VIDEO_TOKEN in user_input:
+                num_videos = user_input.count(DEFAULT_VIDEO_TOKEN)
+                # Slice the videos list to get the videos for the current turn.
+                videos_for_this_turn = videos[video_curr_count : video_curr_count + num_videos]
                 if "Qwen2.5" in self.model_id:
-                    inputs = processor(text=[user_input], images=images, videos=videos, padding=False, do_resize=False, return_tensors='pt', **video_kwargs)
+                    inputs = processor(text=[user_input], images=images, videos=videos_for_this_turn, padding=False, do_resize=False, return_tensors='pt', **video_kwargs)
                     all_second_gird.extend(inputs["second_per_grid_ts"])
                 else:
-                    inputs = processor(text=[user_input], images=images, videos=videos, padding=False, do_resize=False, return_tensors='pt')
+                    inputs = processor(text=[user_input], images=images, videos=videos_for_this_turn, padding=False, do_resize=False, return_tensors='pt')
                 prompt_input_ids = inputs['input_ids']
                 all_pixel_values.append(inputs[pixel_key])
                 all_image_grid_thw.append(inputs[grid_key])
+                video_curr_count += num_videos
 
             else:
                 prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, padding=False, return_tensors='pt')['input_ids']
@@ -154,7 +164,7 @@ class SupervisedDataset(Dataset):
             input_ids = torch.cat([prompt_input_ids, response_input_ids], dim=1).squeeze(0)
             labels = torch.cat(
                 [
-                    torch.tensor([IGNORE_INDEX] * len(prompt_input_ids[0])),  
+                    torch.tensor([IGNORE_INDEX] * len(prompt_input_ids[0])),
                     response_input_ids.squeeze(0),
                 ],
                 dim=0,
@@ -162,7 +172,7 @@ class SupervisedDataset(Dataset):
 
             all_input_ids.append(input_ids)
             all_labels.append(labels)
-        
+
         # There is no need for eos or bos tokens in the input_ids
         # Qwen2-VL does not use them
         input_ids = torch.cat(all_input_ids, dim=0).to(torch.long)
@@ -188,7 +198,7 @@ class SupervisedDataset(Dataset):
         if len(all_second_gird) > 0:
             second_gird = all_second_gird
             data_dict["second_per_grid_ts"] = second_gird
-        
+
         return data_dict
 
 class DataCollatorForSupervisedDataset(object):
@@ -205,7 +215,7 @@ class DataCollatorForSupervisedDataset(object):
         batch_video_thw = []
         batch_image_thw = []
         batch_second_per_grid_ts = []
-        
+
         for example in examples:
             keys = example.keys()
             if "pixel_values_videos" in keys:
@@ -214,13 +224,13 @@ class DataCollatorForSupervisedDataset(object):
             elif "pixel_values" in keys:
                 batch_pixel_values.append(example["pixel_values"])
                 batch_image_thw.append(example["image_grid_thw"])
-            
+
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
 
             if "second_per_grid_ts" in keys:
                 batch_second_per_grid_ts.extend(example["second_per_grid_ts"])
-        
+
         input_ids = pad_sequence(
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
         )
@@ -250,7 +260,7 @@ class DataCollatorForSupervisedDataset(object):
             data_dict["second_per_grid_ts"] = batch_second_per_grid_ts
 
         return data_dict
-    
+
 def make_supervised_data_module(model_id, processor, data_args):
     """Make dataset and collator for supervised fine-tuning."""
     sft_dataset = SupervisedDataset(
