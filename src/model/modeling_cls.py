@@ -380,7 +380,7 @@ class Qwen2VLForSequenceClassification(Qwen2VLPreTrainedModel):
                     img = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
 
                     flat = inputs_embeds.reshape(-1, H).clone()
-                    flat.index_copy_(0, row_idx, img)
+                    flat = flat.index_copy_(0, row_idx, img)
                     inputs_embeds = flat.view(B, T, H)
 
             if pixel_values_videos is not None:
@@ -404,7 +404,7 @@ class Qwen2VLForSequenceClassification(Qwen2VLPreTrainedModel):
                     vid = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)  # [N, H]
 
                     flat = inputs_embeds.reshape(-1, H).clone()
-                    flat.index_copy_(0, row_idx, vid)
+                    flat = flat.index_copy_(0, row_idx, vid)
                     inputs_embeds = flat.view(B, T, H)
 
             if attention_mask is not None:
@@ -716,7 +716,7 @@ class Qwen2_5_VLForSequenceClassification(Qwen2_5_VLPreTrainedModel):
                     img = image_embeds.to(inputs_embeds.device, inputs_embeds.dtype)
 
                     flat = inputs_embeds.reshape(-1, H).clone()
-                    flat.index_copy_(0, row_idx, img)
+                    flat = flat.index_copy_(0, row_idx, img)
                     inputs_embeds = flat.view(B, T, H)
             
             if pixel_values_videos is not None:
@@ -741,7 +741,7 @@ class Qwen2_5_VLForSequenceClassification(Qwen2_5_VLPreTrainedModel):
                     vid = video_embeds.to(inputs_embeds.device, inputs_embeds.dtype)  # [N, H]
 
                     flat = inputs_embeds.reshape(-1, H).clone()
-                    flat.index_copy_(0, row_idx, vid)
+                    flat = flat.index_copy_(0, row_idx, vid)
                     inputs_embeds = flat.view(B, T, H)
                 if attention_mask is not None:
                     attention_mask = attention_mask.to(inputs_embeds.device)
