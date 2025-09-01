@@ -549,20 +549,20 @@ def qwen2_5_mixed_modality_forward(
 
     if inputs_embeds is None:
         inputs_embeds = self.model.embed_tokens(input_ids)
-    
+
         # Pass dummy image and dummy grid to the visual model to avoid deepspeed error.
         if pixel_values is None and pixel_values_videos is None:
             # Create dummy pixel_values and grid_thw for avoiding deepspeed error.
             dummy_pixel = torch.zeros(784, 1176).to(self.visual.device)
             dummy_grid = torch.tensor([[1, 28, 28]]).to(self.visual.device)
-            
+
             dummy_pixel = dummy_pixel.type(self.visual.dtype)
             image_embeds = self.visual(dummy_pixel, grid_thw=dummy_grid)
             # Operates as maksed_scatter for the image tokens
             # However the values are all zeros so it dosen't affect the embeddings.
             # This could avoid deepspeed error when some batch only has texts.
             inputs_embeds += image_embeds.mean() * 0
-            
+
         if pixel_values is not None:
             pixel_values = pixel_values.type(self.visual.dtype)
             image_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
@@ -581,7 +581,7 @@ def qwen2_5_mixed_modality_forward(
 
                 img = image_embeds.to(inputs_embeds.device, dtype=inputs_embeds.dtype)
                 flat = inputs_embeds.view(-1, H)
-                flat.index_copy_(0, row_idx, img)
+                flat = flat.index_copy(0, row_idx, img)
                 inputs_embeds = flat.view(B, T, H)
 
         if pixel_values_videos is not None:
@@ -604,7 +604,7 @@ def qwen2_5_mixed_modality_forward(
                 flat = inputs_embeds.view(-1, H) 
                 flat.index_copy_(0, row_idx, vid)
                 inputs_embeds = flat.view(B, T, H)
-    
+
         if attention_mask is not None:
             attention_mask = attention_mask.to(inputs_embeds.device)
 
