@@ -128,10 +128,6 @@ def train():
         cfg = AutoConfig.from_pretrained(model_args.model_id)
         cfg.mlp_head_hidden_dim = training_args.mlp_head_dim
         cfg.mlp_head_dropout = training_args.mlp_head_dropout
-        cfg.use_margin_head = training_args.use_margin_head
-        cfg.margin_type = training_args.margin_type
-        cfg.margin_m = training_args.margin_m
-        cfg.margin_s = training_args.margin_s
         cfg.num_labels = training_args.num_labels
         
         model = Qwen2_5_VLForSequenceClassification.from_pretrained(
@@ -145,10 +141,6 @@ def train():
         cfg = AutoConfig.from_pretrained(model_args.model_id)
         cfg.mlp_head_hidden_dim = training_args.mlp_head_dim
         cfg.mlp_head_dropout = training_args.mlp_head_dropout
-        cfg.use_margin_head = training_args.use_margin_head
-        cfg.margin_type = training_args.margin_type
-        cfg.margin_m = training_args.margin_m
-        cfg.margin_s = training_args.margin_s
         cfg.num_labels = training_args.num_labels
         
         model = Qwen2VLForSequenceClassification.from_pretrained(

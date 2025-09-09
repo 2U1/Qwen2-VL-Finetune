@@ -78,69 +78,73 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
         return rotary_pos_emb
 
     def get_window_index(self, grid_thw):
-        window_index = []
-        cu_window_seqlens = [0]
-        win = self.window_size // self.spatial_merge_size // self.patch_size
+        window_index: list = []
+        cu_window_seqlens: list = [0]
+        window_index_id = 0
+        vit_merger_window_size = self.window_size // self.spatial_merge_size // self.patch_size
 
-        offset = 0
-        for t, h, w in grid_thw.tolist():
-            H = int(h // self.spatial_merge_size)
-            W = int(w // self.spatial_merge_size)
-            Tw = int(t)
+        for grid_t, grid_h, grid_w in grid_thw:
+            llm_grid_h, llm_grid_w = (
+                grid_h // self.spatial_merge_size,
+                grid_w // self.spatial_merge_size,
+            )
+            index = torch.arange(grid_t * llm_grid_h * llm_grid_w).reshape(grid_t, llm_grid_h, llm_grid_w)
 
-            nwh = (H + win - 1) // win
-            nww = (W + win - 1) // win
+            pad_h = (vit_merger_window_size - llm_grid_h % vit_merger_window_size) % vit_merger_window_size
+            pad_w = (vit_merger_window_size - llm_grid_w % vit_merger_window_size) % vit_merger_window_size
 
-            for tt in range(Tw):
-                base_t = tt * (H * W)
-                for wh in range(nwh):
-                    h0 = wh * win
-                    h1 = min(h0 + win, H)
-                    rows = torch.arange(h0, h1, dtype=torch.long)
-                    for ww in range(nww):
-                        w0 = ww * win
-                        w1 = min(w0 + win, W)
-                        cols = torch.arange(w0, w1, dtype=torch.long)
-                        idx = rows.unsqueeze(1) * W + cols.unsqueeze(0)
-                        idx = idx.reshape(-1) + base_t
-                        window_index.append(idx + offset)
-                        cu_window_seqlens.append(cu_window_seqlens[-1] + (h1 - h0) * (w1 - w0) * self.spatial_merge_unit)
+            num_windows_h = (llm_grid_h + pad_h) // vit_merger_window_size
+            num_windows_w = (llm_grid_w + pad_w) // vit_merger_window_size
 
-            offset += Tw * H * W
-
+            index_padded = F.pad(index, (0, pad_w, 0, pad_h), "constant", -100)
+            index_padded = index_padded.reshape(
+                grid_t,
+                num_windows_h,
+                vit_merger_window_size,
+                num_windows_w,
+                vit_merger_window_size,
+            )
+            index_padded = index_padded.permute(0, 1, 3, 2, 4).reshape(
+                grid_t,
+                num_windows_h * num_windows_w,
+                vit_merger_window_size,
+                vit_merger_window_size,
+            )
+            seqlens = (index_padded != -100).sum([2, 3]).reshape(-1)
+            index_padded = index_padded.reshape(-1)
+            index_new = index_padded[index_padded != -100]
+            window_index.append(index_new + window_index_id)
+            cu_seqlens_tmp = seqlens.cumsum(0) * self.spatial_merge_unit + cu_window_seqlens[-1]
+            cu_window_seqlens.extend(cu_seqlens_tmp.tolist())
+            window_index_id += (grid_t * llm_grid_h * llm_grid_w).item()
         window_index = torch.cat(window_index, dim=0)
+
         return window_index, cu_window_seqlens
 
 
     def forward(self, hidden_states: torch.Tensor, grid_thw: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            hidden_states (`torch.Tensor` of shape `(seq_len, hidden_size)`):
-                The final hidden states of the model.
-            grid_thw (`torch.Tensor` of shape `(num_images_or_videos, 3)`):
-                The temporal, height and width of feature shape of each image in LLM.
-
-        Returns:
-            `torch.Tensor`: hidden_states.
-        """
         hidden_states = self.patch_embed(hidden_states)
         seq_len, dim = hidden_states.size()
-        group = self.spatial_merge_unit
-        G = seq_len // group
 
         rotary_pos_emb = self.rot_pos_emb(grid_thw)
-        
+
         window_index, cu_window_seqlens_list = self.get_window_index(grid_thw)
+
         cu_window_seqlens = torch.tensor(
             cu_window_seqlens_list,
-            dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32
+            device=hidden_states.device,
+            dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
         )
         cu_window_seqlens = torch.unique_consecutive(cu_window_seqlens)
+
+        group = self.spatial_merge_unit
+        G = seq_len // group
 
         hidden_states = hidden_states.view(G, group, dim)
         rotary_pos_emb = rotary_pos_emb.view(G, group, -1)
 
         window_index_dev = window_index.to(hidden_states.device, non_blocking=True)
+
         hidden_states = hidden_states.index_select(0, window_index_dev).reshape(seq_len, dim)
         rotary_pos_emb = rotary_pos_emb.index_select(0, window_index_dev).reshape(seq_len, -1)
 
@@ -153,16 +157,24 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
         )
         cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
 
+        if cu_seqlens.device != hidden_states.device:
+             cu_seqlens = cu_seqlens.to(hidden_states.device, non_blocking=True)
+
         for layer_num, blk in enumerate(self.blocks):
-            cu_now = cu_seqlens if layer_num in self.fullatt_block_indexes else cu_window_seqlens.to(hidden_states.device, non_blocking=True)
+            if layer_num in self.fullatt_block_indexes:
+                cu_seqlens_now = cu_seqlens
+            else:
+                cu_seqlens_now = cu_window_seqlens
+
             if self.gradient_checkpointing and self.training:
                 hidden_states = self._gradient_checkpointing_func(
-                    blk.__call__, hidden_states, cu_now, None, position_embeddings
+                    blk.__call__, hidden_states, cu_seqlens_now, None, position_embeddings
                 )
             else:
-                hidden_states = blk(hidden_states, cu_seqlens=cu_now, position_embeddings=position_embeddings)
+                hidden_states = blk(hidden_states, cu_seqlens=cu_seqlens_now, position_embeddings=position_embeddings)
 
         hidden_states = self.merger(hidden_states)
+
         reverse_indices = torch.empty_like(window_index_dev)
         reverse_indices.scatter_(0, window_index_dev, torch.arange(window_index_dev.numel(), dtype=torch.long, device=window_index_dev.device))
         hidden_states = hidden_states.index_select(0, reverse_indices)
