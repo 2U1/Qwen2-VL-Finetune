@@ -61,7 +61,7 @@ class QwenSFTTrainer(Trainer):
 
             if len(lr_mapper) > 0:
                 special_lr_parameters = merger_parameters + visual_parameters
-                
+
                 optimizer_grouped_parameters = [
                     {
                         "params": [p for n, p in opt_model.named_parameters() if (n in decay_parameters and n not in special_lr_parameters and p.requires_grad)],
@@ -72,7 +72,7 @@ class QwenSFTTrainer(Trainer):
                         "weight_decay": 0.0,
                     },
                 ]
-                
+
                 if visual_parameters: 
                     optimizer_grouped_parameters.extend(
                         [
@@ -88,7 +88,7 @@ class QwenSFTTrainer(Trainer):
                             },
                         ]
                     )
-                
+
                 if merger_parameters: 
                     optimizer_grouped_parameters.extend(
                         [
@@ -133,7 +133,7 @@ class QwenSFTTrainer(Trainer):
                 logger.info(f"skipped: {skipped/2**20}M params")
 
         return self.optimizer
-    
+
     def _save_checkpoint(self, model, trial):
         # In all cases, including ddp/dp/deepspeed, self.model is always a reference to the model we
         # want to save except FullyShardedDDP.
@@ -190,5 +190,17 @@ class QwenSFTTrainer(Trainer):
     #     for name, param in model.named_parameters():
     #         if 'visual' in name and param.requires_grad:
     #             print(f"Training parameter {name}")
-    # 
+    #
     #     return super().training_step(model, inputs)
+
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
+        labels = inputs.get("labels") if "labels" in inputs else None
+
+        with torch.no_grad():
+            outputs = model(**inputs)
+            loss = outputs.loss if hasattr(outputs, "loss") else None
+            logits = outputs.logits if hasattr(outputs, "logits") else None
+
+        if prediction_loss_only:
+            return (loss, None, None)
+        return (loss, logits, labels)
