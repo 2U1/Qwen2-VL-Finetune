@@ -13,6 +13,7 @@ This repository contains a script for training [Qwen2-VL](https://huggingface.co
 
 ## Update
 
+- [2025/09/12] 🔥**Update for `transformers==4.56.1` and torch==`2.8.0`**
 - [2025/08/21] Add option for using 2-layer mlp for classification.
 - [2025/08/21] Add option for unfreeze only few layers for llm and vision tower.
 - [2025/08/08] 🔥Monkey patch Qwen2.5-VL's window attention and forward for using less memory and speedups.
@@ -94,14 +95,14 @@ docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john1
 
 - Ubuntu 22.04
 - Nvidia-Driver 550.120
-- Cuda version 12.4
+- Cuda version 12.8
 
 Install the required packages using `environment.yaml`.
 
 ### Using `requirements.txt`
 
 ```bash
-pip install -r requirements.txt -f https://download.pytorch.org/whl/cu124
+pip install -r requirements.txt -f https://download.pytorch.org/whl/cu128
 pip install qwen-vl-utils
 pip install flash-attn --no-build-isolation
 ```

@@ -1,6 +1,16 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+try:
+    from accelerate.utils import ParallelismConfig as _PC
+except Exception:
+    class _PC:
+        pass
+
+import transformers.training_args as _ta
+if not hasattr(_ta, "ParallelismConfig"):
+    _ta.ParallelismConfig = _PC
+
 from transformers import TrainingArguments as HFTrainingArguments
 from trl import DPOConfig as DPOConfigTRL
 from trl import GRPOConfig as GRPOConfigTRL

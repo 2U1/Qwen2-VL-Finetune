@@ -6,12 +6,14 @@ from transformers import Trainer
 from transformers.trainer import (
     is_sagemaker_mp_enabled,
     get_parameter_names,
-    ALL_LAYERNORM_LAYERS,
     TRAINER_STATE_NAME,
     PREFIX_CHECKPOINT_DIR,
     logger,
     ExportableState,
     SaveStrategy
+)
+from transformers.pytorch_utils import (
+    ALL_LAYERNORM_LAYERS
 )
 from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3
 

@@ -145,7 +145,7 @@ def train():
         if not training_args.lora_enable:
             ref_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
                 model_args.model_id,
-                torch_dtype=compute_dtype,
+                dtype=compute_dtype,
                 attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
                 **bnb_model_from_pretrained_args
             )
@@ -153,14 +153,14 @@ def train():
     else:
         model = Qwen2VLForConditionalGeneration.from_pretrained(
             model_args.model_id,
-            torch_dtype=compute_dtype,
+            dtype=compute_dtype,
             attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
             **bnb_model_from_pretrained_args
         )
         if not training_args.lora_enable:
             ref_model = Qwen2VLForConditionalGeneration.from_pretrained(
                 model_args.model_id,
-                torch_dtype=compute_dtype,
+                dtype=compute_dtype,
                 attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
                 **bnb_model_from_pretrained_args
             )
@@ -177,7 +177,7 @@ def train():
     )
 
     if training_args.bits in [4,8]:
-        model.config.torch_dtype = (torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
+        model.config.dtype = (torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
         from peft import prepare_model_for_kbit_training
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing, gradient_checkpointing_kwargs={"use_reentrant": True})
     

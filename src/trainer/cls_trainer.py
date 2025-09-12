@@ -6,12 +6,14 @@ from transformers import Trainer
 from transformers.trainer import (
     is_sagemaker_mp_enabled,
     get_parameter_names,
-    ALL_LAYERNORM_LAYERS,
     TRAINER_STATE_NAME,
     PREFIX_CHECKPOINT_DIR,
     logger,
     ExportableState,
     SaveStrategy
+)
+from transformers.pytorch_utils import (
+    ALL_LAYERNORM_LAYERS
 )
 from transformers.trainer_utils import seed_worker
 from transformers.utils import is_datasets_available

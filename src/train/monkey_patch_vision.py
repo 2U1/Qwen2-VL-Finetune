@@ -15,9 +15,8 @@ import transformers.models.qwen2_5_vl.modeling_qwen2_5_vl
 def replace_qwen2_5_vision():
     transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2_5_VisionTransformerPretrainedModel = Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow
 
-
 class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTrainedModel):
-    config_class = Qwen2_5_VLVisionConfig
+    config: Qwen2_5_VLVisionConfig
     _no_split_modules = ["Qwen2_5_VLVisionBlock"]
 
     def __init__(self, config, *inputs, **kwargs) -> None:
@@ -159,7 +158,7 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
 
         if cu_seqlens.device != hidden_states.device:
              cu_seqlens = cu_seqlens.to(hidden_states.device, non_blocking=True)
-
+             
         for layer_num, blk in enumerate(self.blocks):
             if layer_num in self.fullatt_block_indexes:
                 cu_seqlens_now = cu_seqlens
