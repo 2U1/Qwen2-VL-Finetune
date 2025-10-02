@@ -63,12 +63,12 @@ def configure_vision_tower(model, training_args, compute_dtype, device):
     set_requires_grad(merger_params, not training_args.freeze_merger)
 
 def configure_llm(model, training_args):
-    llm_params = model.model.parameters()
+    llm_params = model.language_model.parameters()
     set_requires_grad(llm_params, not training_args.freeze_llm)
 
 def unfreeze_topk_layers(model, k_llm: int = 0, k_vis: int = 0):
-    if k_llm and hasattr(model, "model") and hasattr(model.model, "layers"):
-        for layer in model.model.layers[-k_llm:]:
+    if k_llm and hasattr(model, "language_model") and hasattr(model.language_model, "layers"):
+        for layer in model.language_model.layers[-k_llm:]:
             for p in layer.parameters():
                 p.requires_grad = True
 

@@ -54,12 +54,12 @@ def configure_llm(model, training_args):
     lm_head = model.lm_head.parameters()
     set_requires_grad(lm_head, not training_args.freeze_llm)
 
-    llm_params = model.model.parameters()
+    llm_params = model.language_model.parameters()
     set_requires_grad(llm_params, not training_args.freeze_llm)
 
 def unfreeze_topk_layers(model, k_llm: int = 0, k_vis: int = 0):
-    if k_llm and hasattr(model, "model") and hasattr(model.model, "layers"):
-        for layer in model.model.layers[-k_llm:]:
+    if k_llm and hasattr(model, "language_model") and hasattr(model.language_model, "layers"):
+        for layer in model.language_model.layers[-k_llm:]:
             for p in layer.parameters():
                 p.requires_grad = True
 
@@ -159,15 +159,19 @@ def train():
         k_vis=getattr(training_args, "unfreeze_topk_vision", 0),
     )
 
+    if training_args.gradient_checkpointing:
+        if training_args.vision_lora:
+            training_args.gradient_checkpointing_kwargs = {"use_reentrant": False}
+        else:
+            training_args.gradient_checkpointing_kwargs = {"use_reentrant": True}
+        
+        model.enable_input_require_grads()
+
     if training_args.bits in [4,8]:
         model.config.dtype = (torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
         from peft import prepare_model_for_kbit_training
-        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing, gradient_checkpointing_kwargs={"use_reentrant": True})
+        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing, gradient_checkpointing_kwargs=training_args.gradient_checkpointing_kwargs)
     
-    if training_args.gradient_checkpointing:
-        model.enable_input_require_grads()
-        training_args.gradient_checkpointing_kwargs = {"use_reentrant": True}
-
     if training_args.lora_enable:
         lora_namespan_exclude = training_args.lora_namespan_exclude
         peft_config = LoraConfig(

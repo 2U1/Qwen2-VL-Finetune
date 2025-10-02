@@ -188,12 +188,19 @@ class QwenSFTTrainer(Trainer):
         else:
             super(QwenSFTTrainer, self)._save_checkpoint(model, trial)
 
-    # def training_step(self, model, inputs):
-    #     for name, param in model.named_parameters():
-    #         if 'visual' in name and param.requires_grad:
-    #             print(f"Training parameter {name}")
-    #
-    #     return super().training_step(model, inputs)
+    # def training_step(self, model, inputs, num_items_in_batch):
+        
+    #     loss = super().training_step(model, inputs, num_items_in_batch)
+
+    #     for name, p in model.named_parameters():
+    #         if 'visual' in name and 'lora_' in name:
+    #             g = p.grad
+    #             if g is None:
+    #                 print(f"[NONE] {name}")
+    #             else:
+    #                 print(f"[GRAD] {name} | norm={g.norm().item():.3e}")
+    
+    #     return loss
 
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         labels = inputs.get("labels") if "labels" in inputs else None
